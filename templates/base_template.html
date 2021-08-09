@@ -1,0 +1,89 @@
+<!DOCTYPE html>
+
+<html lang="en">
+    <head>
+        {%  block head %}
+        {% block google_analytics %}{% endblock %}
+
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <script type="application/javascript" src="static/resources/jquery/jquery-3.1.1.min.js"></script>
+        <script type="application/javascript" src="https://code.highcharts.com/highcharts.js"></script>
+        <script type="application/javascript" src="https://code.highcharts.com/modules/data.js"></script>
+        <script type="application/javascript" src="https://code.highcharts.com/modules/exporting.js"></script>
+
+        <!-- Additional files for the Highslide popup effect -->
+        <script type="application/javascript" src="https://www.highcharts.com/samplesstatic/highslide-full.min.js"></script>
+        <script type="application/javascript" src="https://www.highcharts.com/samplesstatic/highslide.config.js" charset="utf-8"></script>
+        <script type="application/javascript" src="static/resources/jquery/jquery.csv-0.71.min.js"></script>
+
+        <script type="application/javascript" src="static/resources/bootstrap/bootstrap-3.3.7/bootstrap.min.js"></script>
+
+        <link rel="stylesheet" type="text/css" href="https://www.highcharts.com/samplesstatic/highslide.css" />
+
+        <link href="static/resources/bootstrap/bootstrap-3.3.7/css/bootstrap.min.css" rel="stylesheet">
+        <link href="static/resources/bootstrap/bootstrap-3.3.7/css/bootstrap-theme.min.css" rel="stylesheet">
+
+        <link href="static/css/Default.css" rel="stylesheet" type="text/css" media="screen" />
+        <link href="static/css/stylesheet.css" rel="../stylesheet"  type="text/css" />
+        <link href="static/css/menu_style.css" type="text/css" rel="stylesheet">
+        <link href="static/bootstrap_app_general.css" type="text/css" rel="stylesheet">
+
+        <style>
+          .nav-tabs {
+              margin-bottom: 0;
+          }
+          .nav-tabs > li.active > a  {
+            font-weight: bold;
+          }
+          .nav-tabs > li > a {
+            color: #aab3b3;
+            font-weight: bold;
+            padding: 5px 10px;
+          }
+          #stations_data_div {
+            overflow-y: scroll;
+            height: 600px;
+          }
+          #station_graph_column {
+           position: relative;
+              /*padding-bottom: 40%;*/
+              width:95%;
+              float:left;
+          }
+        </style>
+
+
+        <title>{% block title %}{% endblock %}</title>
+        {% endblock %}
+    </head>
+    <body>
+      <div class="app_container">
+        <div class="app_row">
+          <div class="left_col">
+            <div class="bg_new_left"></div>
+          </div>
+          <div class="middle-column">
+            <div class="row header_row">
+              <div class="col-xs-12 header_column">
+                <img src="static/images/banner_top.jpg">
+              </div>
+            </div>
+            <div class="row app_body_row">
+              <div class="app_body">
+                  {% block app_body %}{% endblock %}
+              <!-- Nav tabs -->
+              </div>
+            </div>
+          </div>
+          <div class="right_col">
+            <div class="bg_new_right"></div>
+          </div>
+        </div>
+
+      </div>
+
+      <script>
+          {% block initialize_script %}{% endblock %}
+      </script>
+    </body>
+</html>
