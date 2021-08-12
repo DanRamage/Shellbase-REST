@@ -4,7 +4,7 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Polygon, Point
 from shapely import wkt
-
+from math import isnan
 
 session_data = {}
 
@@ -156,7 +156,9 @@ class ShellbaseStationsInfo(MethodView):
                                           geometry=gpd.points_from_xy(x=df.long, y=df.lat))
                 overlayed_stations = gpd.overlay(geo_df, bbox_df, how="intersection", keep_geom_type=False)
                 for index, row in overlayed_stations.iterrows():
-
+                    sample_depth = ""
+                    if row.sample_depth_type is not None:
+                        sample_depth = row.sample_depth_type
                     features['features'].append({
                         'type': 'Feature',
                         "geometry": {
@@ -167,7 +169,7 @@ class ShellbaseStationsInfo(MethodView):
                             'name': row.name,
                             'state': row.state,
                             'sample_depth_type': row.sample_depth_type,
-                            'sample_depth': row.sample_depth,
+                            'sample_depth': sample_depth,
                             'active': row.active
                         }
                     })
