@@ -7,7 +7,7 @@ import atexit
 
 from flask_cors import CORS
 from shellbase_db import shellbase_db
-from config import SECRET_API_KEY, SHELLBASE_CONNECTION_STRING, LOGFILE, PRODUCTION_MACHINE
+from config import SECRET_API_KEY, SHELLBASE_CONNECTION_STRING, FULL_LOG_PATH
 import signal
 
 #from apispec import APISpec
@@ -26,7 +26,7 @@ class GracefulKiller:
 
 def init_logging(app):
   app.logger.setLevel(logging.DEBUG)
-  file_handler = RotatingFileHandler(filename = LOGFILE)
+  file_handler = RotatingFileHandler(filename = FULL_LOG_PATH)
   file_handler.setLevel(logging.DEBUG)
   file_handler.setFormatter(Formatter('%(asctime)s,%(levelname)s,%(module)s,%(funcName)s,%(lineno)d,%(message)s'))
   app.logger.addHandler(file_handler)

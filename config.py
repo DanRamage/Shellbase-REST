@@ -5,12 +5,13 @@ SECRET_API_KEY = os.urandom((32))
 PRODUCTION_MACHINE = False
 USE_PRODUCTION_DATABASES = True
 
-
+LOGFILE = 'rest_data.log'
 if PRODUCTION_MACHINE:
-    LOGFILE = 'rest_data.log'
+    LOGPATH = '/var/log/wq_rest'
 else:
-    LOGFILE = './rest_data.log'
+    LOGPATH = './'
 
+FULL_LOG_PATH = os.path.join(LOGPATH, LOGFILE)
 if USE_PRODUCTION_DATABASES:
     SHELLBASE_CONNECTION_STRING = "{database_type}://{db_user}:{db_password}@{db_host}/{db_name}".format(
         database_type=DATABASE_TYPE,
