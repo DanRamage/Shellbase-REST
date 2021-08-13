@@ -4,7 +4,9 @@ import pandas as pd
 import geopandas as gpd
 from shapely.geometry import Polygon, Point
 from shapely import wkt
-from math import isnan
+
+import time
+
 
 session_data = {}
 
@@ -42,11 +44,13 @@ class APIError(Exception):
 Below are the API views.
 '''
 
-
 class ShellbaseAreas(MethodView):
     def get(self, state=None):
+        req_start_time = time.time()
         from app import get_db_conn
         from shellbase_models import Areas
+        current_app.logger.debug("IP: %s start query areas, State: %s metadata" % (request.remote_addr, state))
+
         try:
             db_obj = get_db_conn()
             recs_q = db_obj.query(Areas).filter(Areas.state == state.upper())
@@ -66,10 +70,22 @@ class ShellbaseAreas(MethodView):
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
         resp.headers.add('Access-Control-Allow-Origin', '*')
+
+        current_app.logger.debug("IP: %s finished query areas, State: %s metadata in %f seconds"\
+                                 % (request.remote_addr,
+                                    state,
+                                    time.time()-req_start_time))
+
         return resp
 
 class ShellbaseStationsInfo(MethodView):
     def get(self, state=None):
+        req_start_time = time.time()
+        bbox_arg = ""
+        if 'bbox' in request.args:
+            bbox_arg = request.args['bbox']
+        current_app.logger.debug("IP: %s start query stations, State: %s BBOX: %s metadata"\
+                                 % (request.remote_addr, state, bbox_arg))
         try:
             if 'bbox' in request.args:
                 resp = self.spatial_query_features(state)
@@ -78,6 +94,9 @@ class ShellbaseStationsInfo(MethodView):
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
+
+        current_app.logger.debug("IP: %s finished query stations, State: %s BBOX: %s metadata in %f seconds"\
+                                 % (request.remote_addr, state, bbox_arg, time.time()-req_start_time))
 
         return resp
 
