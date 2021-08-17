@@ -5,6 +5,7 @@ import geopandas as gpd
 from shapely.geometry import Polygon, Point
 from shapely import wkt
 
+from datetime import datetime
 import time
 
 
@@ -43,6 +44,22 @@ class APIError(Exception):
 '''
 Below are the API views.
 '''
+
+def BBOXtoPolygon(bbox):
+    try:
+        bounding_box = request.args['bbox'].split(',')
+        if len(bounding_box) == 4:
+            wkt_query_polygon = 'POLYGON(({x1} {y1}, {x1} {y2}, {x2} {y2}, {x2} {y1}, {x1} {y1}))'.format(
+                x1=bounding_box[0],
+                y1=bounding_box[1],
+                x2=bounding_box[2],
+                y2=bounding_box[3]
+            )
+            query_polygon = wkt.loads(wkt_query_polygon)
+            return query_polygon
+    except Exception as e:
+        current_app.logger.exception(e)
+    return None
 
 class ShellbaseAreas(MethodView):
     def get(self, state=None):
@@ -199,3 +216,105 @@ class ShellbaseStationsInfo(MethodView):
             resp = Response({}, 404, content_type='Application/JSON')
 
         return resp
+
+
+class ShellbaseStateStationDataQuery(MethodView):
+    def get(self, state, station):
+        req_start_time = time.time()
+        features = {
+            'type': 'Feature',
+            'geometry': {},
+            'properties': {}
+        }
+        from app import get_db_conn
+        from shellbase_models import Samples, Stations
+        current_app.logger.debug("IP: %s start ShellbaseStateStationDataQuery, State: %s Station: %s"\
+                                 % (request.remote_addr,
+                                    state,
+                                    station))
+
+        try:
+            start_date = end_date = None
+            if 'start_date' in request.args:
+                start_date = request.args['start_date']
+            if 'end_date' in request.args:
+                end_date = request.args['end_date']
+            #Do we have a start/end date range to use? If not we're simply going to return the last sample
+            #data point.
+            db_obj = get_db_conn()
+            recs_q = db_obj.query(Samples,Stations)\
+                .join(Stations, Stations.id == Samples.station_id)
+            if start_date:
+                recs_q = recs_q.filter(Samples.sample_datetime >= start_date)
+            if end_date:
+                recs_q = recs_q.filter(Samples.sample_datetime < end_date)
+            recs_q = recs_q.filter(Stations.name == station)\
+                .filter(Stations.state == state.upper())\
+                .order_by(Samples.sample_datetime)
+            recs = recs_q.all()
+            properties = features['properties']
+            properties['sample_datetime'] = []
+            properties['sample_value'] = []
+            for index, rec in enumerate(recs):
+                properties['sample_datetime'].append(rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S"))
+                properties['sample_value'].append(rec.Samples.value)
+                if index == 0:
+                    lat = -1.0
+                    long = -1.0
+                    try:
+                        lat = float(rec.Stations.lat)
+                    except TypeError as e:
+                        e
+                    try:
+                        long = float(rec.Stations.long)
+                    except TypeError as e:
+                        e
+                    features['geomtry'] = {
+                        "type": "Point",
+                        "coordinates": [long, lat]
+                    }
+
+        except Exception as e:
+            current_app.logger.exception(e)
+            resp = Response({}, 404, content_type='Application/JSON')
+
+        resp = jsonify(features)
+        current_app.logger.debug("IP: %s finished ShellbaseStateStationDataQuery, State: %s Station: %s in %f seconds"\
+                                 % (request.remote_addr,
+                                    state,
+                                    station,
+                                    time.time()-req_start_time))
+        return resp
+
+
+class ShellbaseSpatialDataQuery(MethodView):
+    def get(self):
+        features = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
+        try:
+            from app import get_db_conn
+            from shellbase_models import Samples, Stations
+            current_app.logger.debug("IP: %s start ShellbaseSpatialDataQuery, BBOX: %s" \
+                                     % (request.remote_addr, bbox))
+
+            start_date = end_date = None
+            if 'start_date' in request.args:
+                start_date = request.args['start_date']
+            if 'end_date' in request.args:
+                end_date = request.args['end_date']
+            # Do we have a start/end date range to use? If not we're simply going to return the last sample
+            # data point.
+            db_obj = get_db_conn()
+            recs_q = db_obj.query(Samples, Stations) \
+                .join(Stations, Stations.id == Samples.station_id)
+            if start_date:
+                recs_q = recs_q.filter(Samples.sample_datetime >= start_date)
+            if end_date:
+                recs_q = recs_q.filter(Samples.sample_datetime < end_date)
+            recs_q = recs_q.order_by(Samples.sample_datetime)
+
+        except Exception as e:
+            current_app.logger.exception(e)
+            resp = Response({}, 404, content_type='Application/JSON')

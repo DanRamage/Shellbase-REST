@@ -37,7 +37,9 @@ def init_logging(app):
 
 def build_url_rules(app):
     from rest_views import ShellbaseStationsInfo, \
-            ShellbaseAreas
+            ShellbaseAreas, \
+            ShellbaseStateStationDataQuery, \
+            ShellbaseSpatialDataQuery
 
     app.logger.debug("build_url_rules started")
 
@@ -47,6 +49,10 @@ def build_url_rules(app):
                      view_func=ShellbaseStationsInfo.as_view('station_info_api'), methods=['GET'])
     app.add_url_rule('/api/v1/<string:state>/stations',
                      view_func=ShellbaseStationsInfo.as_view('state_station_info_api'), methods=['GET'])
+    app.add_url_rule('/api/v1/data/<string:state>/<string:station>',
+                     view_func=ShellbaseStateStationDataQuery.as_view('state_station_data_api'), methods=['GET'])
+    app.add_url_rule('/api/v1/data/',
+                     view_func=ShellbaseSpatialDataQuery.as_view('spatial_station_data_api'), methods=['GET'])
 
 
     @app.errorhandler(500)
@@ -91,7 +97,7 @@ def create_app():
         flask_app.logger.exception(e)
     return flask_app
 
-app = create_app()
+#app = create_app()
 
 def get_db_conn():
     """Opens a new database connection if there is none yet for the

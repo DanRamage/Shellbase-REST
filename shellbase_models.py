@@ -136,22 +136,22 @@ class Samples(Base):
   station_id = Column("station_id", Integer, ForeignKey("stations.id"))
   #station = relationship("Stations", backref="samples")
 
-  tide_id = Column("tide_id", Integer, ForeignKey("lkp_tide.id"))
+  tide_id = Column("tide", Integer, ForeignKey("lkp_tide.id"))
   #tide = relationship("Lkp_Tide", backref="samples")
 
-  strategy_id = Column("strategy_id", Integer, ForeignKey("lkp_sample_strategy.id"))
+  strategy_id = Column("strategy", Integer, ForeignKey("lkp_sample_strategy.id"))
   #strategy = relationship("Lkp_Sample_Strategy", backref="samples")
 
-  reason_id = Column("reason_id", Integer, ForeignKey("lkp_sample_reason.id"))
-  reason = relationship("Lkp_Sample_Reason", backref="samples")
+  reason_id = Column("reason", Integer, ForeignKey("lkp_sample_reason.id"))
+  #reason = relationship("Lkp_Sample_Reason", backref="samples")
 
-  fc_analysis_method_id = Column("fc_analysis_method_id", Integer, ForeignKey("lkp_fc_analysis_method.id"))
+  fc_analysis_method_id = Column("fc_analysis_method", Integer, ForeignKey("lkp_fc_analysis_method.id"))
   #fc_analysis_method = relationship("Lkp_Fc_Analysis_Method", backref="samples")
 
-  type_id = Column("type_id", Integer, ForeignKey("lkp_sample_type.id"))
+  type_id = Column("type", Integer, ForeignKey("lkp_sample_type.id"))
   #type = relationship("Lkp_Sample_Type", backref="samples")
 
-  units_id = Column("units_id", Integer, ForeignKey("lkp_sample_units.id"))
+  units_id = Column("units", Integer, ForeignKey("lkp_sample_units.id"))
   #units = relationship("Lkp_Sample_Units", backref="samples")
 
   value = Column(Float, nullable=False)
