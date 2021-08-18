@@ -118,8 +118,8 @@ class ShellbaseStationsInfo(MethodView):
         return resp
 
     def query_features(self, state):
-        from app import get_db_conn
-        from shellbase_models import Stations
+        from shellbaseapi import get_db_conn
+        from .shellbase_models import Stations
         try:
             features = {
                 'type': 'FeatureCollection',
@@ -158,8 +158,8 @@ class ShellbaseStationsInfo(MethodView):
             resp = Response({}, 404, content_type='Application/JSON')
         return resp
     def spatial_query_features(self, state):
-        from app import get_db_conn
-        from shellbase_models import Stations
+        from shellbaseapi import get_db_conn
+        from .shellbase_models import Stations
 
         features = {
             'type': 'FeatureCollection',
@@ -227,7 +227,7 @@ class ShellbaseStateStationDataQuery(MethodView):
             'properties': {}
         }
         from app import get_db_conn
-        from shellbase_models import Samples, Stations
+        from .shellbase_models import Samples, Stations
         current_app.logger.debug("IP: %s start ShellbaseStateStationDataQuery, State: %s Station: %s"\
                                  % (request.remote_addr,
                                     state,
@@ -295,7 +295,7 @@ class ShellbaseSpatialDataQuery(MethodView):
         }
         try:
             from app import get_db_conn
-            from shellbase_models import Samples, Stations
+            from .shellbase_models import Samples, Stations
             current_app.logger.debug("IP: %s start ShellbaseSpatialDataQuery, BBOX: %s" \
                                      % (request.remote_addr, bbox))
 
