@@ -49,10 +49,10 @@ def build_url_rules(app):
                      view_func=ShellbaseStationsInfo.as_view('station_info_api'), methods=['GET'])
     app.add_url_rule('/api/v1/<string:state>/stations',
                      view_func=ShellbaseStationsInfo.as_view('state_station_info_api'), methods=['GET'])
-    app.add_url_rule('/api/v1/data/<string:state>/<string:station>',
-                     view_func=ShellbaseStateStationDataQuery.as_view('state_station_data_api'), methods=['GET'])
     app.add_url_rule('/api/v1/data/',
                      view_func=ShellbaseSpatialDataQuery.as_view('spatial_station_data_api'), methods=['GET'])
+    app.add_url_rule('/api/v1/data/<string:state>/<string:station>',
+                     view_func=ShellbaseStateStationDataQuery.as_view('state_station_data_api'), methods=['GET'])
 
 
     @app.errorhandler(500)
@@ -66,7 +66,7 @@ def build_url_rules(app):
     @app.teardown_appcontext
     def remove_session(error):
         """Closes the database again at the end of the request."""
-        if hasattr(g, 'rts_session'):
+        if hasattr(g, 'db_session'):
             db_conn.remove_session()
             current_app.logger.debug("Removing DB Session.")
 
