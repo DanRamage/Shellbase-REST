@@ -329,7 +329,7 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                             long = float(rec.Stations.long)
                         except TypeError as e:
                             e
-                        features['geomtry'] = {
+                        features['geometry'] = {
                             "type": "Point",
                             "coordinates": [long, lat]
                         }
