@@ -260,14 +260,16 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
             if state:
                 recs_q = recs_q.filter(Stations.state == state.upper())
             if self._bbox:
+                #We give pandas the sql statement to make the query and build the dataframe from the results.
                 df = pd.read_sql(recs_q.statement, db_obj.bind)
+                #Create the geopandas dataframe telling using the points_from_xy to build the geometry column.
                 geo_df = gpd.GeoDataFrame(df,
                                           geometry=gpd.points_from_xy(x=df.long, y=df.lat))
+                #Taking the passed in bounding box, we do an intersection to get the stations we are interested in.
                 overlayed_stations = gpd.overlay(geo_df, bbox_df, how="intersection", keep_geom_type=False)
                 sample_types = []
                 for index, row in overlayed_stations.iterrows():
                     sample_depth = ""
-
                     # All the stations will have the same observations, so we only need to query once.
                     if index == 0:
                         # Get the observations that a station has.
