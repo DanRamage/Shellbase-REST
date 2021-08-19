@@ -102,7 +102,7 @@ class Stations(Base):
   state = Column(String(2))
 
   area_id = Column(Integer, ForeignKey("areas.id"))
-  area = relationship("Areas", lazy="select")
+  #area = relationship("Areas", lazy="select")
 
   lat = Column(Float, nullable=True)
   long = Column(Float, nullable=True)

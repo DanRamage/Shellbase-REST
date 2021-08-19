@@ -2,7 +2,7 @@ from flask import request, render_template, current_app, session, Response, json
 from flask.views import View, MethodView
 import pandas as pd
 import geopandas as gpd
-from shapely.geometry import Polygon, Point
+from sqlalchemy import and_
 from shapely import wkt
 import json
 from datetime import datetime
@@ -53,29 +53,13 @@ class APIError(Exception):
 Below are the API views.
 '''
 
-def BBOXtoPolygon(bbox):
-    try:
-        bounding_box = request.args['bbox'].split(',')
-        if len(bounding_box) == 4:
-            wkt_query_polygon = 'POLYGON(({x1} {y1}, {x1} {y2}, {x2} {y2}, {x2} {y1}, {x1} {y1}))'.format(
-                x1=bounding_box[0],
-                y1=bounding_box[1],
-                x2=bounding_box[2],
-                y2=bounding_box[3]
-            )
-            query_polygon = wkt.loads(wkt_query_polygon)
-            return query_polygon
-    except Exception as e:
-        current_app.logger.exception(e)
-    return None
-
 class ShellbaseAPIBase(MethodView):
     def get_request_args(self):
         return None
     def GeoJSONResponse(self, **kwargs):
         return Response(json.dumps({}), 404, content_type='Application/JSON')
     def CSVResponse(self, **kwargs):
-        return Response(json.dumps({}), 404, content_type='text/csv')
+        return Response('', 404, content_type='text/csv')
 
     def BBOXtoPolygon(self, bbox):
         try:
@@ -128,71 +112,117 @@ class ShellbaseAreas(MethodView):
 
         return resp
 
-class ShellbaseStationsInfo(MethodView):
-    def get(self, state=None):
-        req_start_time = time.time()
-        bbox_arg = ""
+class ShellbaseStationsInfo(ShellbaseAPIBase):
+    def __init__(self):
+        self._bbox = None
+
+    def get_request_args(self):
         if 'bbox' in request.args:
-            bbox_arg = request.args['bbox']
+            self._bbox = self.BBOXtoPolygon(request.args['bbox'])
+
+    def get(self, state=None):
+        from shellbaseapi import get_db_conn
+
+        req_start_time = time.time()
+        self.get_request_args()
         current_app.logger.debug("IP: %s start query stations, State: %s BBOX: %s metadata"\
-                                 % (request.remote_addr, state, bbox_arg))
+                                 % (request.remote_addr, state, self._bbox))
         try:
+            db_obj = get_db_conn()
+
             if 'bbox' in request.args:
-                resp = self.spatial_query_features(state)
+                resp = self.spatial_query_features(state, db_obj)
             else:
-                resp = self.query_features(state)
+                resp = self.query_features(state, db_obj)
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
 
         current_app.logger.debug("IP: %s finished query stations, State: %s BBOX: %s metadata in %f seconds"\
-                                 % (request.remote_addr, state, bbox_arg, time.time()-req_start_time))
+                                 % (request.remote_addr, state, self._bbox, time.time()-req_start_time))
 
         return resp
 
-    def query_features(self, state):
-        from shellbaseapi import get_db_conn
-        from .shellbase_models import Stations
+    def get_station_observation_information(self, station_name, db_obj):
+        from .shellbase_models import Stations, Samples, Lkp_Sample_Type, Lkp_Sample_Units
+        try:
+            observation_info = []
+            recs_q = db_obj.query(Stations, Samples, Lkp_Sample_Type, Lkp_Sample_Units) \
+                .filter(Stations.name == station_name)\
+                .join(Samples, Samples.station_id == Stations.id)\
+                .join(Lkp_Sample_Type, Lkp_Sample_Type.id == Samples.type_id)\
+                .join(Lkp_Sample_Units, Lkp_Sample_Units.id == Samples.units_id)\
+                .distinct(Samples.type_id)
+            recs_q.all()
+
+            for index,rec in enumerate(recs_q):
+                observation_info.append( {
+                    'sample type': rec.Lkp_Sample_Type.name,
+                    'sample units': rec.Lkp_Sample_Units.name
+                })
+        except Exception as e:
+            current_app.logger.exception(e)
+        return observation_info
+    def query_features(self, state, db_obj):
+        from .shellbase_models import Stations, Areas, Lkp_Area_Classification
         try:
             features = {
                 'type': 'FeatureCollection',
                 'features': []
             }
+            #The isouter=True gives us a left join.
+            recs_q = db_obj.query(Stations, Areas.name, Lkp_Area_Classification.name)\
+                .join(Areas, Areas.id == Stations.area_id, isouter=True)\
+                .join(Lkp_Area_Classification, Lkp_Area_Classification.id == Areas.classification, isouter=True)
 
-            db_obj = get_db_conn()
             if state:
-                recs_q = db_obj.query(Stations).filter(Stations.state == state.upper())
-            else:
-                recs_q = db_obj.query(Stations)
+                recs_q = recs_q.filter(Stations.state == state.upper())
 
             recs = recs_q.all()
-            for rec in recs:
+            sample_types = []
+            for index, rec in enumerate(recs):
+                #All the stations will have the same observations, so we only need to query once.
+                if index == 0:
+                    # Get the observations that a station has.
+                    sample_types = self.get_station_observation_information(rec.Stations.name, db_obj)
+
                 lat = -1.0
                 long = -1.0
                 try:
-                    lat = float(rec.lat)
+                    lat = float(rec.Stations.lat)
                 except TypeError as e:
                     e
                 try:
-                    long = float(rec.long)
+                    long = float(rec.Stations.long)
                 except TypeError as e:
                     e
+                properties = {}
+                properties['name'] = rec.Stations.name
+                properties['state'] = rec.Stations.state
+                properties['sample_depth_type'] = rec.Stations.sample_depth_type
+                properties['sample_depth'] = rec.Stations.sample_depth
+                properties['active']  = rec.Stations.active
+                properties['area']  = rec[1]
+                properties['classification'] = ''
+                if rec[2] is not None:
+                    properties['classification']  = rec[2]
+
+                properties['sample types'] = sample_types
                 features['features'].append({
                     'type': 'Feature',
                     "geometry": {
                         "type": "Point",
                         "coordinates": [long, lat]
                     },
-                    'properties': rec.as_dict()
+                    'properties': properties
                 })
             resp = jsonify(features)
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
         return resp
-    def spatial_query_features(self, state):
-        from shellbaseapi import get_db_conn
-        from .shellbase_models import Stations
+    def spatial_query_features(self, state, db_obj):
+        from .shellbase_models import Stations, Areas, Lkp_Area_Classification
 
         features = {
             'type': 'FeatureCollection',
@@ -202,6 +232,7 @@ class ShellbaseStationsInfo(MethodView):
         try:
             query_polygon = None
 
+            '''
             bounding_box = request.args['bbox'].split(',')
             if len(bounding_box) == 4:
                 wkt_query_polygon = 'POLYGON(({x1} {y1}, {x1} {y2}, {x2} {y2}, {x2} {y1}, {x1} {y1}))'.format(
@@ -211,36 +242,59 @@ class ShellbaseStationsInfo(MethodView):
                     y2=bounding_box[3]
                 )
                 query_polygon = wkt.loads(wkt_query_polygon)
+                
                 bbox_series = gpd.GeoSeries([query_polygon])
                 bbox_df = gpd.GeoDataFrame({'geometry': bbox_series})
+            '''
+            if self._bbox:
+                bbox_series = gpd.GeoSeries([self._bbox])
+                bbox_df = gpd.GeoDataFrame({'geometry': bbox_series})
+            #The isouter=True gives us a left join.
+            #We provide lables for the Area.name and Lkp_Area_Classification.name columns
+            #to clearly know which column we are working with after the GeoPandas operation.
+            #Otherwise sqlalchemy uses it's own naming convention like name_1, name_2.
+            recs_q = db_obj.query(Stations, Areas.name.label('area_name'), Lkp_Area_Classification.name.label('classification_name'))\
+                .join(Areas, Areas.id == Stations.area_id, isouter=True)\
+                .join(Lkp_Area_Classification, Lkp_Area_Classification.id == Areas.classification, isouter=True)
 
-            db_obj = get_db_conn()
             if state:
-                recs_q = db_obj.query(Stations).filter(Stations.state == state.upper())
-            else:
-                recs_q = db_obj.query(Stations)
-            if query_polygon:
+                recs_q = recs_q.filter(Stations.state == state.upper())
+            if self._bbox:
                 df = pd.read_sql(recs_q.statement, db_obj.bind)
                 geo_df = gpd.GeoDataFrame(df,
                                           geometry=gpd.points_from_xy(x=df.long, y=df.lat))
                 overlayed_stations = gpd.overlay(geo_df, bbox_df, how="intersection", keep_geom_type=False)
+                sample_types = []
                 for index, row in overlayed_stations.iterrows():
                     sample_depth = ""
+
+                    # All the stations will have the same observations, so we only need to query once.
+                    if index == 0:
+                        # Get the observations that a station has.
+                        sample_types = self.get_station_observation_information(row['name'], db_obj)
+
                     if row.sample_depth_type is not None:
                         sample_depth = row.sample_depth_type
+
+                    properties = {}
+                    properties['name'] = row['name']
+                    properties['state'] = row['state']
+                    properties['sample_depth_type'] = row['sample_depth_type']
+                    properties['sample_depth'] = sample_depth
+                    properties['active'] = row['active']
+                    properties['area'] = row['area_name']
+                    properties['classification'] = ''
+                    if row.classification_name is not None:
+                        properties['classification'] = row['classification_name']
+                    properties['sample_types'] = sample_types
+
                     features['features'].append({
                         'type': 'Feature',
                         "geometry": {
                             "type": "Point",
                             "coordinates": [float(row.geometry.x), float(row.geometry.y)]
                         },
-                        'properties': {
-                            'name': row.name,
-                            'state': row.state,
-                            'sample_depth_type': row.sample_depth_type,
-                            'sample_depth': sample_depth,
-                            'active': row.active
-                        }
+                        'properties': properties
                     })
             resp = jsonify(features)
 
@@ -288,8 +342,7 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                     'type': 'Feature',
                     'geometry': {},
                     'properties': {}
-                }                #Do we have a start/end date range to use? If not we're simply going to return the last sample
-                #data point.
+                }
                 db_obj = get_db_conn()
                 recs_q = db_obj.query(Samples,Stations,Lkp_Sample_Type,Lkp_Sample_Units,Lkp_Tide)\
                     .join(Stations, Stations.id == Samples.station_id)\
@@ -305,8 +358,16 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                     .order_by(Samples.sample_datetime)
                 recs = recs_q.all()
                 properties = features['properties']
+                #For the observations and tide, we add a key that is the observation name. Then
+                # we add a list of the datetime and value fields. For example the
+                #FC data would have an entry like:
+                # fc:
+                #   datetime: [2020-01-01]
+                #   value: [10]
+                #The value and datetime are indexed together.
                 for index, rec in enumerate(recs):
                     rec_datetime = rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                    #Tide is not a separate observation, it tags along on each database record.
                     if 'tide' not in properties:
                         properties['tide'] = { 'value': [], 'datetime': [] }
                     if rec_datetime not in properties['tide']['datetime']:
