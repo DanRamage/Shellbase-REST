@@ -1,7 +1,116 @@
 {% extends "base_template.html" %}
 
-{% block title %}CDMO REST API Help{% endblock %}
+{% block title %}ShellBase REST API Help{% endblock %}
 
 {% block app_body %}
-    <div>Help goes here!</div>
+    <div class="container">
+        <table class="u-full-width">
+            <div class="card">
+                <div class="card-content">
+                    <div class="media-content">
+                        <p class="title is-4">
+                            /api/v1/stations
+                        </p>
+                        <div class="content">
+                            This request returns metadata about the station, such as geographic location and
+                            samples available.
+                            <p>
+                                <h3>Attributes</h3>
+                                <hr>
+                                <div>
+                                    bbox <span class="tag">string</span>
+                                    <br>
+                                    The query will return all stations within the bounding box.
+                                    <p>
+                                    bbox=xmin,ymin,xmax,ymax
+                                    <br>
+
+                                    </p>
+
+                                </div>
+                            </p>
+                    </div>
+                </div>
+            </div>
+    </div>
+            <div class="card">
+                <div class="card-content">
+                    <div class="media-content">
+                        <p class="title is-4">
+                            /api/v1/stations/state abbreviation
+                        </p>
+                        <div class="content">
+                            <p>
+                            This request returns metadata about the station, such as geographic location and
+                            samples available. The query will be limited to the stations in the state provided.
+                            </p>
+                            <p>
+                            The abbreviations are: NC, SC, GA, or FL. If the bbox parameter is provided, the request
+                            returns only the stations within the state within the bbox.
+                            </p>
+                            <p>
+                                <h3>Attributes</h3>
+                                <hr>
+                                <div>
+                                    bbox <span class="tag">string</span>
+                                    <br>
+                                    The query will return all stations within the bounding box.
+                                    <p>
+                                    bbox=xmin,ymin,xmax,ymax
+                                    <br>
+
+                                    </p>
+
+                                </div>
+                            </p>
+                    </div>
+                </div>
+            </div>
+    </div>
+            <div class="card">
+                <div class="card-content">
+                    <div class="media-content">
+                        <p class="title is-4">
+                            /api/v1/data/state abbreviation/station name
+                        </p>
+                        <div class="content">
+                            <p>
+                            </p>
+                            <p>
+                            The abbreviations are: NC, SC, GA, or FL. If the bbox parameter is provided, the request
+                            returns only the stations within the state within the bbox.
+
+                            </p>
+                            <p>
+                                <h3>Attributes</h3>
+                                <hr>
+                                <div>
+                                    bbox <span class="tag">string</span>
+                                    <br>
+                                    The query will return all stations within the bounding box.
+                                    <p>
+                                    bbox=xmin,ymin,xmax,ymax
+                                    <br>
+                                    </p>
+                                    <hr>
+                                    start_date <span class="tag">string</span>
+                                    <br>
+                                    The date to begin the data request at.
+                                    <p>
+                                        start_date=YYYY-MM-DD
+                                    </p>
+                                    <hr>
+                                    end_date <span class="tag">string</span>
+                                    <br>
+                                    The date to end the data request at.
+                                    <p>
+                                        end_date=YYYY-MM-DD
+                                    </p>
+                                </div>
+                            </p>
+                    </div>
+                </div>
+            </div>
+    </div>
+
 {% endblock %}

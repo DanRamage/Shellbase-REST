@@ -39,9 +39,12 @@ def build_url_rules(app):
     from .rest_views import ShellbaseStationsInfo, \
             ShellbaseAreas, \
             ShellbaseStateStationDataQuery, \
-            ShellbaseSpatialDataQuery
+            ShellbaseSpatialDataQuery, \
+            APIHelp
 
     app.logger.debug("build_url_rules started")
+
+    app.add_url_rule('/api/v1/help', view_func=APIHelp.as_view('api_help'))
 
     app.add_url_rule('/api/v1/<string:state>/areas',
                      view_func=ShellbaseAreas.as_view('areas_info_api'), methods=['GET'])
@@ -81,7 +84,7 @@ def shutdown_all():
     db_conn.disconnect()
 
 def create_app():
-    flask_app = Flask(__name__)
+    flask_app = Flask(__name__, static_url_path="", static_folder="static")
     '''
     #Enable Cross origin
     if not PRODUCTION_MACHINE:

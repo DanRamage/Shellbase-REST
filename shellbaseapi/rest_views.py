@@ -230,22 +230,6 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
         }
 
         try:
-            query_polygon = None
-
-            '''
-            bounding_box = request.args['bbox'].split(',')
-            if len(bounding_box) == 4:
-                wkt_query_polygon = 'POLYGON(({x1} {y1}, {x1} {y2}, {x2} {y2}, {x2} {y1}, {x1} {y1}))'.format(
-                    x1=bounding_box[0],
-                    y1=bounding_box[1],
-                    x2=bounding_box[2],
-                    y2=bounding_box[3]
-                )
-                query_polygon = wkt.loads(wkt_query_polygon)
-                
-                bbox_series = gpd.GeoSeries([query_polygon])
-                bbox_df = gpd.GeoDataFrame({'geometry': bbox_series})
-            '''
             if self._bbox:
                 bbox_series = gpd.GeoSeries([self._bbox])
                 bbox_df = gpd.GeoDataFrame({'geometry': bbox_series})
@@ -302,7 +286,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
 
         except Exception as e:
             current_app.logger.exception(e)
-            resp = Response({}, 404, content_type='Application/JSON')
+            resp = Response(json.dumps({'message': "Server error processing request."}), 404, content_type='Application/JSON')
 
         return resp
 
