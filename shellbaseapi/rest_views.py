@@ -7,7 +7,7 @@ from shapely import wkt
 import json
 from datetime import datetime
 import time
-
+from itertools import chain
 
 session_data = {}
 
@@ -52,13 +52,25 @@ class APIError(Exception):
 '''
 Below are the API views.
 '''
-
+JSON_RETURN = 1
+CSV_RETURN = 2
 class ShellbaseAPIBase(MethodView):
+    def __init__(self):
+        self._return_type = JSON_RETURN
+
     def get_request_args(self):
+        if 'type' in request.args:
+            if request.args['type'] == 'csv':
+                self._return_type = CSV_RETURN
         return None
-    def GeoJSONResponse(self, **kwargs):
+    def get_response(self, **kwargs):
+        if self._return_type == JSON_RETURN:
+            return self.geojson_response(**kwargs)
+        else:
+            return self.csv_response(**kwargs)
+    def geojson_response(self, **kwargs):
         return Response(json.dumps({}), 404, content_type='Application/JSON')
-    def CSVResponse(self, **kwargs):
+    def csv_response(self, **kwargs):
         return Response('', 404, content_type='text/csv')
 
     def BBOXtoPolygon(self, bbox):
@@ -114,11 +126,183 @@ class ShellbaseAreas(MethodView):
 
 class ShellbaseStationsInfo(ShellbaseAPIBase):
     def __init__(self):
+        super().__init__()
         self._bbox = None
+        self._return_type = 'json'
 
     def get_request_args(self):
+        super().get_request_args()
         if 'bbox' in request.args:
             self._bbox = self.BBOXtoPolygon(request.args['bbox'])
+
+    def csv_response(self, **kwargs):
+        features = []
+        recs = kwargs.get('recs', [])
+        db_obj = kwargs['db_obj']
+        if type(recs) == gpd.GeoDataFrame:
+                sample_types = []
+                sample_types_col = ""
+                #for index, row in recs.iterrows():
+                for index, row in recs.iterrows():
+                    sample_depth = ""
+                    # All the stations will have the same observations, so we only need to query once.
+                    if index == 0:
+                        # Get the observations that a station has.
+                        sample_types = self.get_station_observation_information(row['name'], db_obj)
+                        sample_types_col = ", ".join(f'{obs}'.format(obs) for obs in sample_types)
+                        sample_types_col = '\"%s\"' % (sample_types_col)
+
+                    if row.sample_depth_type is not None:
+                        sample_depth = row.sample_depth_type
+
+                    classification = ''
+                    if row.classification_name is not None:
+                        classification = row['classification_name']
+                    row = [
+                                float(row.geometry.x),
+                                float(row.geometry.y),
+                                row['name'],
+                                row['state'],
+                                row['sample_depth_type'],
+                                 sample_depth,
+                                 row['active'],
+                                 row['area_name'],
+                                 classification
+                                 ]
+                    row.append(sample_types_col)
+                    features.append(row)
+
+        else:
+            sample_types = []
+            sample_types_col = ''
+            for index, rec in enumerate(recs):
+                # All the stations will have the same observations, so we only need to query once.
+                if index == 0:
+                    # Get the observations that a station has.
+                    sample_types = self.get_station_observation_information(rec.Stations.name, db_obj)
+                    sample_types_col = ", ".join(f'{obs}'.format(obs) for obs in sample_types)
+                    sample_types_col = '\"%s\"' % (sample_types_col)
+
+                lat = -1.0
+                long = -1.0
+                try:
+                    lat = float(rec.Stations.lat)
+                except TypeError as e:
+                    e
+                try:
+                    long = float(rec.Stations.long)
+                except TypeError as e:
+                    e
+                classification = ''
+                if rec[2] is not None:
+                    classification = rec[2]
+
+                row = [
+                    long,
+                    lat,
+                    rec.Stations.name,
+                    rec.Stations.state,
+                    rec.Stations.sample_depth_type,
+                    rec.Stations.sample_depth,
+                    rec.Stations.active,
+                    rec[1],
+                    classification
+                ]
+                row.append(sample_types_col)
+                #row = list(chain(row, sample_types))
+                features.append(row)
+
+        header = ['longitude', 'latitude', 'name', 'state', 'sample depth type', 'sample depth', 'active', 'area',
+                  'classification', 'sample_types']
+
+        out_string = []
+        out_string.append(",".join(header))
+        for row in features:
+            out_string.append(",".join(map(str,row)))
+        out_string = "\n".join(out_string)
+        resp = Response(out_string, 200, content_type="text/csv")
+        return resp
+
+    def geojson_response(self, **kwargs):
+        features = {
+            'type': 'FeatureCollection',
+            'features': []
+        }
+        recs = kwargs.get('recs', [])
+        db_obj = kwargs['db_obj']
+        if type(recs) == gpd.GeoDataFrame:
+                sample_types = []
+                #for index, row in recs.iterrows():
+                for index, row in recs.iterrows():
+                    sample_depth = ""
+                    # All the stations will have the same observations, so we only need to query once.
+                    if index == 0:
+                        # Get the observations that a station has.
+                        sample_types = self.get_station_observation_information(row['name'], db_obj)
+
+                    if row.sample_depth_type is not None:
+                        sample_depth = row.sample_depth_type
+
+                    properties = {}
+                    properties['name'] = row['name']
+                    properties['state'] = row['state']
+                    properties['sample_depth_type'] = row['sample_depth_type']
+                    properties['sample_depth'] = sample_depth
+                    properties['active'] = row['active']
+                    properties['area'] = row['area_name']
+                    properties['classification'] = ''
+                    if row.classification_name is not None:
+                        properties['classification'] = row['classification_name']
+                    properties['sample_types'] = sample_types
+
+                    features['features'].append({
+                        'type': 'Feature',
+                        "geometry": {
+                            "type": "Point",
+                            "coordinates": [float(row.geometry.x), float(row.geometry.y)]
+                        },
+                        'properties': properties
+                    })
+        else:
+            sample_types = []
+            for index, rec in enumerate(recs):
+                # All the stations will have the same observations, so we only need to query once.
+                if index == 0:
+                    # Get the observations that a station has.
+                    sample_types = self.get_station_observation_information(rec.Stations.name, db_obj)
+
+                lat = -1.0
+                long = -1.0
+                try:
+                    lat = float(rec.Stations.lat)
+                except TypeError as e:
+                    e
+                try:
+                    long = float(rec.Stations.long)
+                except TypeError as e:
+                    e
+                properties = {}
+                properties['name'] = rec.Stations.name
+                properties['state'] = rec.Stations.state
+                properties['sample_depth_type'] = rec.Stations.sample_depth_type
+                properties['sample_depth'] = rec.Stations.sample_depth
+                properties['active'] = rec.Stations.active
+                properties['area'] = rec[1]
+                properties['classification'] = ''
+                if rec[2] is not None:
+                    properties['classification'] = rec[2]
+
+                properties['sample types'] = sample_types
+                features['features'].append({
+                    'type': 'Feature',
+                    "geometry": {
+                        "type": "Point",
+                        "coordinates": [long, lat]
+                    },
+                    'properties': properties
+                })
+        resp = jsonify(features)
+        return resp
 
     def get(self, state=None):
         from shellbaseapi import get_db_conn
@@ -156,20 +340,21 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
             recs_q.all()
 
             for index,rec in enumerate(recs_q):
-                observation_info.append( {
-                    'sample type': rec.Lkp_Sample_Type.name,
-                    'sample units': rec.Lkp_Sample_Units.name
-                })
+                if self._return_type == JSON_RETURN:
+                    observation_info.append( {
+                        'sample type': rec.Lkp_Sample_Type.name,
+                        'sample units': rec.Lkp_Sample_Units.name
+                    })
+                else:
+                    val = "{type} - {units}".format(type=rec.Lkp_Sample_Type.name,
+                                                    units=rec.Lkp_Sample_Units.name)
+                    observation_info.append(val)
         except Exception as e:
             current_app.logger.exception(e)
         return observation_info
     def query_features(self, state, db_obj):
         from .shellbase_models import Stations, Areas, Lkp_Area_Classification
         try:
-            features = {
-                'type': 'FeatureCollection',
-                'features': []
-            }
             #The isouter=True gives us a left join.
             recs_q = db_obj.query(Stations, Areas.name, Lkp_Area_Classification.name)\
                 .join(Areas, Areas.id == Stations.area_id, isouter=True)\
@@ -179,44 +364,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 recs_q = recs_q.filter(Stations.state == state.upper())
 
             recs = recs_q.all()
-            sample_types = []
-            for index, rec in enumerate(recs):
-                #All the stations will have the same observations, so we only need to query once.
-                if index == 0:
-                    # Get the observations that a station has.
-                    sample_types = self.get_station_observation_information(rec.Stations.name, db_obj)
-
-                lat = -1.0
-                long = -1.0
-                try:
-                    lat = float(rec.Stations.lat)
-                except TypeError as e:
-                    e
-                try:
-                    long = float(rec.Stations.long)
-                except TypeError as e:
-                    e
-                properties = {}
-                properties['name'] = rec.Stations.name
-                properties['state'] = rec.Stations.state
-                properties['sample_depth_type'] = rec.Stations.sample_depth_type
-                properties['sample_depth'] = rec.Stations.sample_depth
-                properties['active']  = rec.Stations.active
-                properties['area']  = rec[1]
-                properties['classification'] = ''
-                if rec[2] is not None:
-                    properties['classification']  = rec[2]
-
-                properties['sample types'] = sample_types
-                features['features'].append({
-                    'type': 'Feature',
-                    "geometry": {
-                        "type": "Point",
-                        "coordinates": [long, lat]
-                    },
-                    'properties': properties
-                })
-            resp = jsonify(features)
+            resp = self.get_response(recs=recs, db_obj=db_obj)
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
@@ -251,38 +399,8 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                                           geometry=gpd.points_from_xy(x=df.long, y=df.lat))
                 #Taking the passed in bounding box, we do an intersection to get the stations we are interested in.
                 overlayed_stations = gpd.overlay(geo_df, bbox_df, how="intersection", keep_geom_type=False)
-                sample_types = []
-                for index, row in overlayed_stations.iterrows():
-                    sample_depth = ""
-                    # All the stations will have the same observations, so we only need to query once.
-                    if index == 0:
-                        # Get the observations that a station has.
-                        sample_types = self.get_station_observation_information(row['name'], db_obj)
 
-                    if row.sample_depth_type is not None:
-                        sample_depth = row.sample_depth_type
-
-                    properties = {}
-                    properties['name'] = row['name']
-                    properties['state'] = row['state']
-                    properties['sample_depth_type'] = row['sample_depth_type']
-                    properties['sample_depth'] = sample_depth
-                    properties['active'] = row['active']
-                    properties['area'] = row['area_name']
-                    properties['classification'] = ''
-                    if row.classification_name is not None:
-                        properties['classification'] = row['classification_name']
-                    properties['sample_types'] = sample_types
-
-                    features['features'].append({
-                        'type': 'Feature',
-                        "geometry": {
-                            "type": "Point",
-                            "coordinates": [float(row.geometry.x), float(row.geometry.y)]
-                        },
-                        'properties': properties
-                    })
-            resp = jsonify(features)
+                resp = self.get_response(recs=overlayed_stations, db_obj=db_obj)
 
         except Exception as e:
             current_app.logger.exception(e)
@@ -293,10 +411,13 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
 
 class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
     def __init__(self):
+        super().__init__()
+
         self._start_date = None
         self._end_date = None
 
     def get_request_args(self):
+        super().get_request_args()
         if 'start_date' in request.args:
             self._start_date = request.args['start_date']
         else:
@@ -306,8 +427,120 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
             self._end_date = request.args['end_date']
         else:
             raise APIError("end_date required parameter", 400)
+    def csv_response(self, **kwargs):
+        from .shellbase_models import Stations, Samples, Lkp_Sample_Type, Lkp_Sample_Units
+        recs =kwargs.get('recs', [])
+        db_obj = kwargs['db_obj']
 
+        # For the observations and tide, we add a key that is the observation name. Then
+        # we add a list of the datetime and value fields. For example the
+        # FC data would have an entry like:
+        # fc:
+        #   datetime: [2020-01-01]
+        #   value: [10]
+        # The value and datetime are indexed together.
+        row = []
+        try:
+            sample_types = []
+            sample_type_units = []
+            for index, rec in enumerate(recs):
+                if index == 0:
 
+                    # Get the observations the station should have.
+                    recs_q = db_obj.query(Stations, Samples, Lkp_Sample_Type, Lkp_Sample_Units) \
+                        .filter(Stations.name == rec.Lkp_Sample_Type.name) \
+                        .join(Samples, Samples.station_id == Stations.id) \
+                        .join(Lkp_Sample_Type, Lkp_Sample_Type.id == Samples.type_id) \
+                        .join(Lkp_Sample_Units, Lkp_Sample_Units.id == Samples.units_id) \
+                        .distinct(Samples.type_id)
+                    recs_q.all()
+                    for rec in recs_q:
+                        sample_types.append(rec.Lkp_Sample_Type.name)
+                        sample_type_units.append(rec.Lkp_Sample_Units.name)
+
+                rec_datetime = rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                row= [
+                    rec_datetime,
+                    rec.Lkp_Tide.name,
+                ]
+                obs_key = rec.Lkp_Sample_Type.name.replace(' ', '_')
+                if obs_key not in properties:
+                    properties[obs_key] = {'value': [], 'datetime': []}
+                    properties[obs_key]['units'] = rec.Lkp_Sample_Units.name
+                properties[obs_key]['datetime'].append(rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S"))
+                properties[obs_key]['value'].append(rec.Samples.value)
+                if index == 0:
+                    lat = -1.0
+                    long = -1.0
+                    try:
+                        lat = float(rec.Stations.lat)
+                    except TypeError as e:
+                        e
+                    try:
+                        long = float(rec.Stations.long)
+                    except TypeError as e:
+                        e
+                    features['geometry'] = {
+                        "type": "Point",
+                        "coordinates": [long, lat]
+                    }
+                resp = jsonify(features)
+        except Exception as e:
+            current_app.logger.exception(e)
+            resp = Response(json.dumps({'message': "Server error processing request"}, 404))
+        return resp
+
+        return ""
+    def geojson_response(self, **kwargs):
+        features = {
+            'type': 'Feature',
+            'geometry': {},
+            'properties': {}
+        }
+        recs =kwargs.get('recs', [])
+        # For the observations and tide, we add a key that is the observation name. Then
+        # we add a list of the datetime and value fields. For example the
+        # FC data would have an entry like:
+        # fc:
+        #   datetime: [2020-01-01]
+        #   value: [10]
+        # The value and datetime are indexed together.
+        properties = features['properties']
+        try:
+            for index, rec in enumerate(recs):
+                rec_datetime = rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S")
+                # Tide is not a separate observation, it tags along on each database record.
+                if 'tide' not in properties:
+                    properties['tide'] = {'value': [], 'datetime': []}
+                if rec_datetime not in properties['tide']['datetime']:
+                    properties['tide']['value'].append(rec.Lkp_Tide.name)
+                    properties['tide']['datetime'].append(rec_datetime)
+                obs_key = rec.Lkp_Sample_Type.name.replace(' ', '_')
+                if obs_key not in properties:
+                    properties[obs_key] = {'value': [], 'datetime': []}
+                    properties[obs_key]['units'] = rec.Lkp_Sample_Units.name
+                properties[obs_key]['datetime'].append(rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S"))
+                properties[obs_key]['value'].append(rec.Samples.value)
+                if index == 0:
+                    lat = -1.0
+                    long = -1.0
+                    try:
+                        lat = float(rec.Stations.lat)
+                    except TypeError as e:
+                        e
+                    try:
+                        long = float(rec.Stations.long)
+                    except TypeError as e:
+                        e
+                    features['geometry'] = {
+                        "type": "Point",
+                        "coordinates": [long, lat]
+                    }
+                resp = jsonify(features)
+        except Exception as e:
+            current_app.logger.exception(e)
+            resp = Response(json.dumps({'message': "Server error processing request"}, 404))
+        return resp
     def get(self, state, station):
         req_start_time = time.time()
         from shellbaseapi import get_db_conn
@@ -324,11 +557,6 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
             resp = e.get_response()
         else:
             try:
-                features = {
-                    'type': 'Feature',
-                    'geometry': {},
-                    'properties': {}
-                }
                 db_obj = get_db_conn()
                 recs_q = db_obj.query(Samples,Stations,Lkp_Sample_Type,Lkp_Sample_Units,Lkp_Tide)\
                     .join(Stations, Stations.id == Samples.station_id)\
@@ -343,49 +571,11 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                     .filter(Stations.state == state.upper())\
                     .order_by(Samples.sample_datetime)
                 recs = recs_q.all()
-                properties = features['properties']
-                #For the observations and tide, we add a key that is the observation name. Then
-                # we add a list of the datetime and value fields. For example the
-                #FC data would have an entry like:
-                # fc:
-                #   datetime: [2020-01-01]
-                #   value: [10]
-                #The value and datetime are indexed together.
-                for index, rec in enumerate(recs):
-                    rec_datetime = rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S")
-                    #Tide is not a separate observation, it tags along on each database record.
-                    if 'tide' not in properties:
-                        properties['tide'] = { 'value': [], 'datetime': [] }
-                    if rec_datetime not in properties['tide']['datetime']:
-                        properties['tide']['value'].append(rec.Lkp_Tide.name)
-                        properties['tide']['datetime'].append(rec_datetime)
-                    obs_key = rec.Lkp_Sample_Type.name.replace(' ', '_')
-                    if obs_key not in properties:
-                        properties[obs_key] = {'value': [], 'datetime': []}
-                        properties[obs_key]['units'] = rec.Lkp_Sample_Units.name
-                    properties[obs_key]['datetime'].append(rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S"))
-                    properties[obs_key]['value'].append(rec.Samples.value)
-                    if index == 0:
-                        lat = -1.0
-                        long = -1.0
-                        try:
-                            lat = float(rec.Stations.lat)
-                        except TypeError as e:
-                            e
-                        try:
-                            long = float(rec.Stations.long)
-                        except TypeError as e:
-                            e
-                        features['geometry'] = {
-                            "type": "Point",
-                            "coordinates": [long, lat]
-                        }
-
+                resp = self.get_response(recs=recs, db_obj=db_obj)
             except Exception as e:
                 current_app.logger.exception(e)
                 resp = Response(json.dumps({}), 500, content_type='Application/JSON')
 
-            resp = jsonify(features)
         current_app.logger.debug("IP: %s finished ShellbaseStateStationDataQuery, State: %s Station: %s in %f seconds"\
                                  % (request.remote_addr,
                                     state,
