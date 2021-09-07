@@ -128,7 +128,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
     def __init__(self):
         super().__init__()
         self._bbox = None
-        self._return_type = 'json'
+        self._return_type = JSON_RETURN
 
     def get_request_args(self):
         super().get_request_args()
