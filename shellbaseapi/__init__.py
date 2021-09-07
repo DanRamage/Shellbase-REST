@@ -84,7 +84,8 @@ def shutdown_all():
     db_conn.disconnect()
 
 def create_app():
-    flask_app = Flask(__name__, static_url_path="", static_folder="static")
+    #flask_app = Flask(__name__, static_url_path="", static_folder="static")
+    flask_app = Flask(__name__)
     '''
     #Enable Cross origin
     if not PRODUCTION_MACHINE:
