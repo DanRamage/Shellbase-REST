@@ -4,117 +4,119 @@
 
 {% block app_body %}
     <div class="container">
-        <table class="u-full-width">
-            <div class="card mt-2 mb-2">
-                <div class="card-content">
-                    <div class="media-content">
-                        <p class="title is-4">
-                            /api/v1/stations
-                        </p>
-                        <div class="content">
-                            This request returns metadata about the station, such as geographic location and
-                            samples available.
-                            <p>
-                                <h3>Attributes</h3>
+        <div>
+            <h1 class="title is-2">Shellbase REST API</h1>
+        </div>
+        <div class="card mt-2 mb-2">
+            <div class="card-content">
+                <div class="media-content">
+                    <p class="title is-4">
+                        /api/v1/stations
+                    </p>
+                    <div class="content">
+                        This request returns metadata about the station, such as geographic location and
+                        samples available.
+                        <p>
+                            <h3>Attributes</h3>
+                            <hr>
+                            <div>
+                                bbox <span class="tag">string</span>
+                                <br>
+                                The query will return all stations within the bounding box.
+                                <p>
+                                bbox=xmin,ymin,xmax,ymax
+                                <br>
                                 <hr>
-                                <div>
-                                    bbox <span class="tag">string</span>
-                                    <br>
-                                    The query will return all stations within the bounding box.
-                                    <p>
-                                    bbox=xmin,ymin,xmax,ymax
-                                    <br>
-                                    <hr>
-                                    <p>
-                                        <a href="http://shellbaseapi.howsthebeach.org/api/v1/stations" target="_blank">Example Query</a>
-                                    </p>
+                                <p>
+                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/stations" target="_blank">Example Query</a>
+                                </p>
 
-                                </div>
-                            </p>
-                    </div>
+                            </div>
+                        </p>
                 </div>
             </div>
-    </div>
-            <div class="card mt-2 mb-2">
-                <div class="card-content">
-                    <div class="media-content">
-                        <p class="title is-4">
-                            /api/v1/stations/state abbreviation
+        </div>
+</div>
+        <div class="card mt-2 mb-2">
+            <div class="card-content">
+                <div class="media-content">
+                    <p class="title is-4">
+                        /api/v1/stations/state abbreviation
+                    </p>
+                    <div class="content">
+                        <p>
+                        This request returns metadata about the station, such as geographic location and
+                        samples available. The query will be limited to the stations in the state provided.
                         </p>
-                        <div class="content">
-                            <p>
-                            This request returns metadata about the station, such as geographic location and
-                            samples available. The query will be limited to the stations in the state provided.
-                            </p>
-                            <p>
-                            The abbreviations are: NC, SC, GA, or FL. If the bbox parameter is provided, the request
-                            returns only the stations within the state within the bbox.
-                            </p>
-                            <p>
-                                <h3>Attributes</h3>
+                        <p>
+                        The abbreviations are: NC, SC, GA, or FL. If the bbox parameter is provided, the request
+                        returns only the stations within the state within the bbox.
+                        </p>
+                        <p>
+                            <h3>Attributes</h3>
+                            <hr>
+                            <div>
+                                bbox <span class="tag">string</span>
+                                <br>
+                                The query will return all stations within the bounding box.
+                                <p>
+                                bbox=xmin,ymin,xmax,ymax
+                                <br>
+
+                                </p>
                                 <hr>
-                                <div>
-                                    bbox <span class="tag">string</span>
-                                    <br>
-                                    The query will return all stations within the bounding box.
-                                    <p>
-                                    bbox=xmin,ymin,xmax,ymax
-                                    <br>
+                                <p>
+                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations" target="_blank">Example Query</a>
+                                </p>
+                                <p>
+                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34" target="_blank">Example Query with BBOX</a>
+                                </p>
 
-                                    </p>
-                                    <hr>
-                                    <p>
-                                        <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations" target="_blank">Example Query</a>
-                                    </p>
-                                    <p>
-                                        <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34" target="_blank">Example Query with BBOX</a>
-                                    </p>
-
-                                </div>
-                            </p>
-                    </div>
+                            </div>
+                        </p>
                 </div>
             </div>
-    </div>
-            <div class="card mt-2 mb-2">
-                <div class="card-content">
-                    <div class="media-content">
-                        <p class="title is-4">
-                            /api/v1/data/state abbreviation/station name
+        </div>
+</div>
+        <div class="card mt-2 mb-2">
+            <div class="card-content">
+                <div class="media-content">
+                    <p class="title is-4">
+                        /api/v1/data/state abbreviation/station name
+                    </p>
+                    <div class="content">
+                        <p>
                         </p>
-                        <div class="content">
-                            <p>
-                            </p>
-                            <p>
-                            The abbreviations are: NC, SC, GA, or FL.
+                        <p>
+                        The abbreviations are: NC, SC, GA, or FL.
 
-                            </p>
-                            <p>
-                                <h3>Attributes</h3>
+                        </p>
+                        <p>
+                            <h3>Attributes</h3>
+                            <hr>
+                            <div>
+                                start_date <span class="tag">string</span>
+                                <br>
+                                The date to begin the data request at.
+                                <p>
+                                    start_date=YYYY-MM-DD
+                                </p>
                                 <hr>
-                                <div>
-                                    start_date <span class="tag">string</span>
-                                    <br>
-                                    The date to begin the data request at.
-                                    <p>
-                                        start_date=YYYY-MM-DD
-                                    </p>
-                                    <hr>
-                                    end_date <span class="tag">string</span>
-                                    <br>
-                                    The date to end the data request at.
-                                    <p>
-                                        end_date=YYYY-MM-DD
-                                    </p>
-                                    <hr>
-                                    <p>
-                                        <a href="http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01" target="_blank"> Example Query</a>
-                                    </p>
-                                </div>
-                            </p>
-                    </div>
+                                end_date <span class="tag">string</span>
+                                <br>
+                                The date to end the data request at.
+                                <p>
+                                    end_date=YYYY-MM-DD
+                                </p>
+                                <hr>
+                                <p>
+                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01" target="_blank"> Example Query</a>
+                                </p>
+                            </div>
+                        </p>
                 </div>
             </div>
+        </div>
+</div>
     </div>
-
 {% endblock %}
