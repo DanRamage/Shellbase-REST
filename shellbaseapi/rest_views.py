@@ -2,7 +2,7 @@ from flask import request, render_template, current_app, session, Response, json
 from flask.views import View, MethodView
 import pandas as pd
 import geopandas as gpd
-from sqlalchemy import and_
+from sqlalchemy import and_, func
 from shapely import wkt
 import json
 from datetime import datetime
@@ -147,6 +147,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                     sample_depth = ""
                     # All the stations will have the same observations, so we only need to query once.
                     if index == 0:
+                        start_date, end_date = self.get_station_timeframe(row['name'], db_obj)
                         # Get the observations that a station has.
                         sample_types = self.get_station_observation_information(row['name'], db_obj)
                         sample_types_col = ", ".join(f'{obs}'.format(obs) for obs in sample_types)
@@ -163,6 +164,8 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                                 float(row.geometry.y),
                                 row['name'],
                                 row['state'],
+                                start_date,
+                                end_date,
                                 row['sample_depth_type'],
                                  sample_depth,
                                  row['active'],
@@ -178,6 +181,8 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
             for index, rec in enumerate(recs):
                 # All the stations will have the same observations, so we only need to query once.
                 if index == 0:
+                    start_date, end_date = self.get_station_timeframe(rec.Stations.name, db_obj)
+
                     # Get the observations that a station has.
                     sample_types = self.get_station_observation_information(rec.Stations.name, db_obj)
                     sample_types_col = ", ".join(f'{obs}'.format(obs) for obs in sample_types)
@@ -202,6 +207,8 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                     lat,
                     rec.Stations.name,
                     rec.Stations.state,
+                    start_date,
+                    end_date,
                     rec.Stations.sample_depth_type,
                     rec.Stations.sample_depth,
                     rec.Stations.active,
@@ -212,7 +219,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 #row = list(chain(row, sample_types))
                 features.append(row)
 
-        header = ['longitude', 'latitude', 'name', 'state', 'sample depth type', 'sample depth', 'active', 'area',
+        header = ['longitude', 'latitude', 'name', 'state', 'start date', 'end_date', 'sample depth type', 'sample depth', 'active', 'area',
                   'classification', 'sample_types']
 
         out_string = []
@@ -220,7 +227,11 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
         for row in features:
             out_string.append(",".join(map(str,row)))
         out_string = "\n".join(out_string)
-        resp = Response(out_string, 200, content_type="text/csv")
+
+        filename = "StationsMetadata"
+        resp = Response(out_string, 200, content_type="text/csv",
+                        headers={"content-disposition": "attachment;filename=" + filename}
+                        )
         return resp
 
     def geojson_response(self, **kwargs):
@@ -237,6 +248,8 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                     sample_depth = ""
                     # All the stations will have the same observations, so we only need to query once.
                     if index == 0:
+                        start_date, end_date = self.get_station_timeframe(row['name'], db_obj)
+
                         # Get the observations that a station has.
                         sample_types = self.get_station_observation_information(row['name'], db_obj)
 
@@ -246,6 +259,10 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                     properties = {}
                     properties['name'] = row['name']
                     properties['state'] = row['state']
+                    if start_date:
+                        properties['start_date'] = start_date.strftime("%Y-%m-%d")
+                    if end_date:
+                        properties['end_date'] = end_date.strftime("%Y-%m-%d")
                     properties['sample_depth_type'] = row['sample_depth_type']
                     properties['sample_depth'] = sample_depth
                     properties['active'] = row['active']
@@ -268,6 +285,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
             for index, rec in enumerate(recs):
                 # All the stations will have the same observations, so we only need to query once.
                 if index == 0:
+                    start_date, end_date = self.get_station_timeframe(rec.Stations.name, db_obj)
                     # Get the observations that a station has.
                     sample_types = self.get_station_observation_information(rec.Stations.name, db_obj)
 
@@ -284,10 +302,15 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 properties = {}
                 properties['name'] = rec.Stations.name
                 properties['state'] = rec.Stations.state
+                if start_date:
+                    properties['start_date'] = start_date.strftime("%Y-%m-%d")
+                if end_date:
+                    properties['end_date'] = end_date.strftime("%Y-%m-%d")
                 properties['sample_depth_type'] = rec.Stations.sample_depth_type
                 properties['sample_depth'] = rec.Stations.sample_depth
                 properties['active'] = rec.Stations.active
                 properties['area'] = rec[1]
+
                 properties['classification'] = ''
                 if rec[2] is not None:
                     properties['classification'] = rec[2]
@@ -352,6 +375,21 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
         except Exception as e:
             current_app.logger.exception(e)
         return observation_info
+    def get_station_timeframe(self, station_name, db_obj):
+        start_date = end_date = None
+        from .shellbase_models import Stations, Samples
+        try:
+            recs_q = db_obj.query(func.max(Samples.sample_datetime),func.min(Samples.sample_datetime)).select_from(Stations) \
+                .filter(Stations.name == station_name)\
+                .join(Samples, Samples.station_id == Stations.id, isouter=True)
+            recs_q.all()
+            for rec in recs_q:
+                start_date = rec[1]
+                end_date = rec[0]
+        except Exception as e:
+            current_app.logger.exception(e)
+        return(start_date,end_date)
+
     def query_features(self, state, db_obj):
         from .shellbase_models import Stations, Areas, Lkp_Area_Classification
         try:
@@ -435,13 +473,6 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
         start_date = kwargs['start_date']
         end_date = kwargs['end_date']
 
-        # For the observations and tide, we add a key that is the observation name. Then
-        # we add a list of the datetime and value fields. For example the
-        # FC data would have an entry like:
-        # fc:
-        #   datetime: [2020-01-01]
-        #   value: [10]
-        # The value and datetime are indexed together.
         rows = []
         out_string = []
 
