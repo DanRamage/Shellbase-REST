@@ -431,6 +431,9 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
         from .shellbase_models import Stations, Samples, Lkp_Sample_Type, Lkp_Sample_Units
         recs =kwargs.get('recs', [])
         db_obj = kwargs['db_obj']
+        station = kwargs['station']
+        start_date = kwargs['start_date']
+        end_date = kwargs['end_date']
 
         # For the observations and tide, we add a key that is the observation name. Then
         # we add a list of the datetime and value fields. For example the
@@ -439,39 +442,37 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
         #   datetime: [2020-01-01]
         #   value: [10]
         # The value and datetime are indexed together.
-        row = []
+        rows = []
+        out_string = []
+
         try:
-            sample_types = []
-            sample_type_units = []
+            sample_types = {}
+            sample_type_units = {}
+            column_indexes = {}
+            header_row = ['Datetime', 'Station', 'Latitude', 'Longitude', 'Tide']
+            lat = -1.0
+            long = -1.0
+            current_row_datetime = None
+            row = []
             for index, rec in enumerate(recs):
                 if index == 0:
-
                     # Get the observations the station should have.
                     recs_q = db_obj.query(Stations, Samples, Lkp_Sample_Type, Lkp_Sample_Units) \
-                        .filter(Stations.name == rec.Lkp_Sample_Type.name) \
+                        .filter(Stations.name == station) \
                         .join(Samples, Samples.station_id == Stations.id) \
                         .join(Lkp_Sample_Type, Lkp_Sample_Type.id == Samples.type_id) \
                         .join(Lkp_Sample_Units, Lkp_Sample_Units.id == Samples.units_id) \
                         .distinct(Samples.type_id)
                     recs_q.all()
-                    for rec in recs_q:
-                        sample_types.append(rec.Lkp_Sample_Type.name)
-                        sample_type_units.append(rec.Lkp_Sample_Units.name)
-
+                    for samples_rec in recs_q:
+                        sample_types[samples_rec.Lkp_Sample_Type.id] = samples_rec.Lkp_Sample_Type.name
+                        sample_type_units[samples_rec.Lkp_Sample_Type.id] = samples_rec.Lkp_Sample_Units.name
+                        header_row.append('{name}-{units}'.format(name=samples_rec.Lkp_Sample_Type.name,
+                                                                  units=samples_rec.Lkp_Sample_Units.name))
+                        column_indexes[samples_rec.Lkp_Sample_Type.id] = len(header_row) -1
                 rec_datetime = rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S")
-                row= [
-                    rec_datetime,
-                    rec.Lkp_Tide.name,
-                ]
-                obs_key = rec.Lkp_Sample_Type.name.replace(' ', '_')
-                if obs_key not in properties:
-                    properties[obs_key] = {'value': [], 'datetime': []}
-                    properties[obs_key]['units'] = rec.Lkp_Sample_Units.name
-                properties[obs_key]['datetime'].append(rec.Samples.sample_datetime.strftime("%Y-%m-%d %H:%M:%S"))
-                properties[obs_key]['value'].append(rec.Samples.value)
-                if index == 0:
-                    lat = -1.0
-                    long = -1.0
+                #When we get a new date and time, we need a new row.
+                if current_row_datetime != rec.Samples.sample_datetime:
                     try:
                         lat = float(rec.Stations.lat)
                     except TypeError as e:
@@ -480,17 +481,36 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                         long = float(rec.Stations.long)
                     except TypeError as e:
                         e
-                    features['geometry'] = {
-                        "type": "Point",
-                        "coordinates": [long, lat]
-                    }
-                resp = jsonify(features)
+                    #Create all the columns we will have in the row.
+                    row = [''] * len(header_row)
+                    rows.append(row)
+                    #Here we set the bits that are common for the row.
+                    row[0] = station
+                    row[1] = rec_datetime
+                    row[2] = lat
+                    row[3] = long
+                    row[4] = rec.Lkp_Tide.name
+                    current_row_datetime = rec.Samples.sample_datetime
+                col_ndx = column_indexes[rec.Samples.type_id]
+                row[col_ndx] = rec.Samples.value
+
+            out_string.append(",".join(header_row))
+            for row in rows:
+                out_string.append(",".join(map(str, row)))
+            out_string = "\n".join(out_string)
+            filename = "{station}_{start_date}_to_{end_date}".format(station=station,
+                                                                     start_date=start_date,
+                                                                     end_date=end_date)
+            resp = Response(out_string, 200, content_type="text/csv",
+                            headers={"content-disposition":"attachment;filename=" + filename}
+            )
+
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response(json.dumps({'message': "Server error processing request"}, 404))
+
         return resp
 
-        return ""
     def geojson_response(self, **kwargs):
         features = {
             'type': 'Feature',
@@ -571,7 +591,8 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                     .filter(Stations.state == state.upper())\
                     .order_by(Samples.sample_datetime)
                 recs = recs_q.all()
-                resp = self.get_response(recs=recs, db_obj=db_obj)
+                resp = self.get_response(recs=recs, db_obj=db_obj, station=station,
+                                         start_date = self._start_date, end_date=self._end_date)
             except Exception as e:
                 current_app.logger.exception(e)
                 resp = Response(json.dumps({}), 500, content_type='Application/JSON')
