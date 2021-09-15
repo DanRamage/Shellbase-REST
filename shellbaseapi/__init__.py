@@ -40,6 +40,7 @@ def build_url_rules(app):
             ShellbaseAreas, \
             ShellbaseStateStationDataQuery, \
             ShellbaseSpatialDataQuery, \
+            ShellbaseStationInfo, \
             APIHelp
 
     app.logger.debug("build_url_rules started")
@@ -51,7 +52,9 @@ def build_url_rules(app):
     app.add_url_rule('/api/v1/stations',
                      view_func=ShellbaseStationsInfo.as_view('station_info_api'), methods=['GET'])
     app.add_url_rule('/api/v1/<string:state>/stations',
-                     view_func=ShellbaseStationsInfo.as_view('state_station_info_api'), methods=['GET'])
+                     view_func=ShellbaseStationsInfo.as_view('state_stations_info_api'), methods=['GET'])
+    app.add_url_rule('/api/v1/<string:state>/<string:station>',
+                     view_func=ShellbaseStationInfo.as_view('state_station_info_api'), methods=['GET'])
     app.add_url_rule('/api/v1/data/',
                      view_func=ShellbaseSpatialDataQuery.as_view('spatial_station_data_api'), methods=['GET'])
     app.add_url_rule('/api/v1/data/<string:state>/<string:station>',
