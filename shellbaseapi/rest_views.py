@@ -139,6 +139,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
         features = []
         recs = kwargs.get('recs', [])
         db_obj = kwargs['db_obj']
+        state = kwargs['state']
         if type(recs) == gpd.GeoDataFrame:
                 sample_types = []
                 sample_types_col = ""
@@ -228,7 +229,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
             out_string.append(",".join(map(str,row)))
         out_string = "\n".join(out_string)
 
-        filename = "StationsMetadata"
+        filename = "{state}_Stations_Metadata".format(state=state)
         resp = Response(out_string, 200, content_type="text/csv",
                         headers={"content-disposition": "attachment;filename=" + filename}
                         )
@@ -438,7 +439,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 #Taking the passed in bounding box, we do an intersection to get the stations we are interested in.
                 overlayed_stations = gpd.overlay(geo_df, bbox_df, how="intersection", keep_geom_type=False)
 
-                resp = self.get_response(recs=overlayed_stations, db_obj=db_obj)
+                resp = self.get_response(state=state, recs=overlayed_stations, db_obj=db_obj)
 
         except Exception as e:
             current_app.logger.exception(e)
