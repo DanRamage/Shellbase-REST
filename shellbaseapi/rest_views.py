@@ -177,7 +177,6 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                     features.append(row)
 
         else:
-            sample_types = []
             sample_types_col = ''
             for index, rec in enumerate(recs):
                 # All the stations will have the same observations, so we only need to query once.
@@ -229,7 +228,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
             out_string.append(",".join(map(str,row)))
         out_string = "\n".join(out_string)
 
-        filename = "{state}_Stations_Metadata".format(state=state)
+        filename = "{state}_Stations_Metadata".format(state=state.upper())
         resp = Response(out_string, 200, content_type="text/csv",
                         headers={"content-disposition": "attachment;filename=" + filename}
                         )
@@ -403,7 +402,7 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 recs_q = recs_q.filter(Stations.state == state.upper())
 
             recs = recs_q.all()
-            resp = self.get_response(recs=recs, db_obj=db_obj)
+            resp = self.get_response(state=state, recs=recs, db_obj=db_obj)
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
