@@ -132,55 +132,6 @@
             </div>
         </div>
 
-
-
-
-
-        <div class="card mt-2 mb-2">
-            <div class="card-content">
-                <div class="media-content">
-                    <p class="title is-4">
-                        /api/v1/stations/state abbreviation
-                    </p>
-                    <div class="content">
-                        <p>
-                            This request returns metadata about the station, such as geographic location and
-                            samples available. The query will be limited to the stations in the state provided.
-                        </p>
-                        <p>
-                            The formats for the state field can be: NC, SC, GA, or FL.
-                            If the bbox parameter is provided, the request
-                            returns only the stations within the state within the bbox.
-                        </p>
-                        <p>
-                        <h3>Attributes</h3>
-                        <hr>
-                        <div>
-                            bbox <span class="tag">string</span>
-                            <br>
-                            The query will return all stations within the bounding box.
-                            <p>
-                                bbox=xmin,ymin,xmax,ymax
-                                <br>
-
-                            </p>
-                            <hr>
-                            <p>
-                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations" target="_blank">Example
-                                    Query: http://shellbaseapi.howsthebeach.org/api/v1/sc/stations</a>
-                            </p>
-                            <p>
-                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34"
-                                   target="_blank">Example Query with BBOX:
-                                    http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34</a>
-                            </p>
-
-                        </div>
-                        </p>
-                    </div>
-                </div>
-            </div>
-        </div>
         <div class="card mt-2 mb-2">
             <div class="card-content">
                 <div class="media-content">
