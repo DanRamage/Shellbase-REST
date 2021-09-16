@@ -590,7 +590,7 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
             sample_types = {}
             sample_type_units = {}
             column_indexes = {}
-            header_row = ['Datetime', 'Station', 'Latitude', 'Longitude', 'Tide']
+            header_row = ['Station', 'Datetime', 'Latitude', 'Longitude', 'Tide']
             lat = -1.0
             long = -1.0
             current_row_datetime = None
