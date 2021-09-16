@@ -54,10 +54,12 @@ def build_url_rules(app):
                      view_func=ShellbaseStationsInfo.as_view('station_info_api'), methods=['GET'])
     app.add_url_rule('/api/v1/metadata/stations/<string:state>',
                      view_func=ShellbaseStationsInfo.as_view('state_stations_info_api'), methods=['GET'])
-    app.add_url_rule('/api/v1/metadata/station/<string:state>/<string:station>',
+    app.add_url_rule('/api/v1/metadata/stations/<string:state>/<string:station>',
                      view_func=ShellbaseStationInfo.as_view('state_station_info_api'), methods=['GET'])
+    '''
     app.add_url_rule('/api/v1/data/',
                      view_func=ShellbaseSpatialDataQuery.as_view('spatial_station_data_api'), methods=['GET'])
+    '''
     app.add_url_rule('/api/v1/data/<string:state>/<string:station>',
                      view_func=ShellbaseStateStationDataQuery.as_view('state_station_data_api'), methods=['GET'])
 
