@@ -11,43 +11,131 @@
             <div class="card-content">
                 <div class="media-content">
                     <p class="title is-4">
-                        /api/v1/stations
+                        /api/v1/metadata/stations
                     </p>
                     <div class="content">
-                        This request returns metadata about the station, such as geographic location and
-                        samples available.
+                        This request returns a list of all the stations. If the BBOX parameter is provided,
+                        only the stations within the bounds will be listed.
                         <p>
-                            <h3>Attributes</h3>
-                            <hr>
-                            <div>
-                                bbox <span class="tag">string</span>
-                                <br>
-                                The query will return all stations within the bounding box.
-                                <p>
+                        <h3>Attributes</h3>
+                        <hr>
+                        <div>
+                            bbox <span class="tag">string</span>
+                            <br>
+                            The query will return all stations within the bounding box.
+                            <p>
                                 bbox=xmin,ymin,xmax,ymax
                                 <br>
-                                <hr>
-                                type <span class="tag">string</span>
-                                <br>
-                                The format to receive the data, if not provided the default is GeoJSON. Accepted values are
-                                csv or json.
-                                <p>
-                                    type=csv|json
-                                </p>
-                                <hr>
-                                <p>
-                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/stations" target="_blank">JSON Example Query: http://shellbaseapi.howsthebeach.org/api/v1/stations</a>
-                                </p>
-                                <p>
-                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?type=csv" target="_blank">CSV Example Query: http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?type=csv</a>
-                                </p>
-
-                            </div>
-                        </p>
+                            <hr>
+                            type <span class="tag">string</span>
+                            <br>
+                            The format to receive the data, if not provided the default is GeoJSON. Accepted values are
+                            csv or json.
+                            <p>
+                                type=csv|json
+                            </p>
+                            <hr>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations" target="_blank">JSON
+                                    Example Query: http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations</a>
+                            </p>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations?type=csv"
+                                   target="_blank">CSV Example Query:
+                                    http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations?type=csv</a>
+                            </p>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
-</div>
+
+        <div class="card mt-2 mb-2">
+            <div class="card-content">
+                <div class="media-content">
+                    <p class="title is-4">
+                        /api/v1/metadata/stations/state
+                    </p>
+                    <div class="content">
+                        This request returns a list of all the stations in the given state. If the BBOX parameter is provided,
+                        only the stations within the bounds will be listed. The formats for the state field can be:
+                        NC, SC, GA, or FL
+                        <p>
+                        <h3>Attributes</h3>
+                        <hr>
+                        <div>
+                            bbox <span class="tag">string</span>
+                            <br>
+                            The query will return all stations within the bounding box.
+                            <p>
+                                bbox=xmin,ymin,xmax,ymax
+                                <br>
+                            <hr>
+                            type <span class="tag">string</span>
+                            <br>
+                            The format to receive the data, if not provided the default is GeoJSON. Accepted values are
+                            csv or json.
+                            <p>
+                                type=csv|json
+                            </p>
+                            <hr>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/sc" target="_blank">State Specific JSON
+                                    Example Query: http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/sc</a>
+                            </p>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/sc?type=csv" target="_blank">State Specific CSV
+                                    Example Query: http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/sc</a>
+                            </p>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="card mt-2 mb-2">
+            <div class="card-content">
+                <div class="media-content">
+                    <p class="title is-4">
+                        /api/v1/metadata/stations/state/station name
+                    </p>
+                    <div class="content">
+                        This request returns metadata about the specific station, such as geographic location and
+                        samples available. The formats for the state field can be:
+                        NC, SC, GA, or FL
+                        <p>
+                        <h3>Attributes</h3>
+                        <hr>
+                        <div>
+                            type <span class="tag">string</span>
+                            <br>
+                            The format to receive the data, if not provided the default is GeoJSON. Accepted values are
+                            csv or json.
+                            <p>
+                                type=csv|json
+                            </p>
+                            <hr>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/SC/19-01" target="_blank">JSON
+                                    Example Query: http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/SC/19-01</a>
+                            </p>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/SC/19-01?type=csv"
+                                   target="_blank">CSV Example Query:
+                                    http://shellbaseapi.howsthebeach.org/api/v1/metadata/stations/SC/19-01?type=csv</a>
+                            </p>
+                        </div>
+                        </p>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+
+
+
+
         <div class="card mt-2 mb-2">
             <div class="card-content">
                 <div class="media-content">
@@ -56,39 +144,43 @@
                     </p>
                     <div class="content">
                         <p>
-                        This request returns metadata about the station, such as geographic location and
-                        samples available. The query will be limited to the stations in the state provided.
+                            This request returns metadata about the station, such as geographic location and
+                            samples available. The query will be limited to the stations in the state provided.
                         </p>
                         <p>
-                        The abbreviations are: NC, SC, GA, or FL. If the bbox parameter is provided, the request
-                        returns only the stations within the state within the bbox.
+                            The formats for the state field can be: NC, SC, GA, or FL.
+                            If the bbox parameter is provided, the request
+                            returns only the stations within the state within the bbox.
                         </p>
                         <p>
-                            <h3>Attributes</h3>
-                            <hr>
-                            <div>
-                                bbox <span class="tag">string</span>
-                                <br>
-                                The query will return all stations within the bounding box.
-                                <p>
+                        <h3>Attributes</h3>
+                        <hr>
+                        <div>
+                            bbox <span class="tag">string</span>
+                            <br>
+                            The query will return all stations within the bounding box.
+                            <p>
                                 bbox=xmin,ymin,xmax,ymax
                                 <br>
 
-                                </p>
-                                <hr>
-                                <p>
-                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations" target="_blank">Example Query: http://shellbaseapi.howsthebeach.org/api/v1/sc/stations</a>
-                                </p>
-                                <p>
-                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34" target="_blank">Example Query with BBOX: http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34</a>
-                                </p>
+                            </p>
+                            <hr>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations" target="_blank">Example
+                                    Query: http://shellbaseapi.howsthebeach.org/api/v1/sc/stations</a>
+                            </p>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34"
+                                   target="_blank">Example Query with BBOX:
+                                    http://shellbaseapi.howsthebeach.org/api/v1/sc/stations?bbox=-81.1,32.8,-77.8,34</a>
+                            </p>
 
-                            </div>
+                        </div>
                         </p>
+                    </div>
                 </div>
             </div>
         </div>
-</div>
         <div class="card mt-2 mb-2">
             <div class="card-content">
                 <div class="media-content">
@@ -99,47 +191,52 @@
                         <p>
                         </p>
                         <p>
-                        This requests returns data for the provided station. The query contains the start_date and end_date
+                            This requests returns data for the provided station. The query contains the start_date and
+                            end_date
                             parameters for the time period of interest. The state abbreviations are: NC, SC, GA, or FL.
 
                         </p>
                         <p>
-                            <h3>Attributes</h3>
+                        <h3>Attributes</h3>
+                        <hr>
+                        <div>
+                            start_date <span class="tag">string</span>
+                            <br>
+                            The date to begin the data request at.
+                            <p>
+                                start_date=YYYY-MM-DD
+                            </p>
                             <hr>
-                            <div>
-                                start_date <span class="tag">string</span>
-                                <br>
-                                The date to begin the data request at.
-                                <p>
-                                    start_date=YYYY-MM-DD
-                                </p>
-                                <hr>
-                                end_date <span class="tag">string</span>
-                                <br>
-                                The date to end the data request at.
-                                <p>
-                                    end_date=YYYY-MM-DD
-                                </p>
-                                <hr>
-                                type <span class="tag">string</span>
-                                <br>
-                                The format to receive the data, if not provided the default is GeoJSON. Accepted values are
-                                csv or json.
-                                <p>
-                                    type=csv|json
-                                </p>
-                                <hr>
-                                <p>
-                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01" target="_blank"> JSON Example Query: http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01</a>
-                                </p>
-                                <p>
-                                    <a href="http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01&type=csv" target="_blank"> CSV Example Query: http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01&type=csv</a>
-                                </p>
-                            </div>
+                            end_date <span class="tag">string</span>
+                            <br>
+                            The date to end the data request at.
+                            <p>
+                                end_date=YYYY-MM-DD
+                            </p>
+                            <hr>
+                            type <span class="tag">string</span>
+                            <br>
+                            The format to receive the data, if not provided the default is GeoJSON. Accepted values are
+                            csv or json.
+                            <p>
+                                type=csv|json
+                            </p>
+                            <hr>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01"
+                                   target="_blank"> JSON Example Query:
+                                    http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01</a>
+                            </p>
+                            <p>
+                                <a href="http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01&type=csv"
+                                   target="_blank"> CSV Example Query:
+                                    http://shellbaseapi.howsthebeach.org/api/v1/data/sc/19-01?start_date=2019-01-01&end_date=2020-01-01&type=csv</a>
+                            </p>
+                        </div>
                         </p>
+                    </div>
                 </div>
             </div>
         </div>
-</div>
     </div>
 {% endblock %}

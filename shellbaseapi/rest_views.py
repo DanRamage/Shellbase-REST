@@ -224,27 +224,12 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 #for index, row in recs.iterrows():
                 for index, row in recs.iterrows():
                     sample_depth = ""
-                    # All the stations will have the same observations, so we only need to query once.
-                    #start_date, end_date = self.get_station_timeframe(row['name'], db_obj)
-
-                    # Each time the state changes, we need to requery the type of observations.
-                    if current_state != row['state']:
-                        # Get the observations that a station has.
-                        sample_types = self.get_station_observation_information(row['state'], db_obj)
-                        current_state = row['state']
-
                     if row.sample_depth_type is not None:
                         sample_depth = row.sample_depth_type
 
                     properties = {}
                     properties['name'] = row['name']
                     properties['state'] = row['state']
-                    '''
-                    if start_date:
-                        properties['start_date'] = start_date.strftime("%Y-%m-%d")
-                    if end_date:
-                        properties['end_date'] = end_date.strftime("%Y-%m-%d")
-                    '''
                     properties['sample_depth_type'] = row['sample_depth_type']
                     properties['sample_depth'] = sample_depth
                     properties['active'] = row['active']
@@ -266,13 +251,6 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
             sample_types = []
             current_state = None
             for index, rec in enumerate(recs):
-                #start_date, end_date = self.get_station_timeframe(rec.Stations.name, db_obj)
-                #Each time the state changes, we need to requery the type of observations.
-                if current_state != rec.Stations.state:
-                    # Get the observations that a station has.
-                    sample_types = self.get_station_observation_information(rec.Stations.name, db_obj)
-                    current_state = rec.Stations.state
-
                 lat = -1.0
                 long = -1.0
                 try:
@@ -286,12 +264,6 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 properties = {}
                 properties['name'] = rec.Stations.name
                 properties['state'] = rec.Stations.state
-                '''
-                if start_date:
-                    properties['start_date'] = start_date.strftime("%Y-%m-%d")
-                if end_date:
-                    properties['end_date'] = end_date.strftime("%Y-%m-%d")
-                '''
                 properties['sample_depth_type'] = rec.Stations.sample_depth_type
                 properties['sample_depth'] = rec.Stations.sample_depth
                 properties['active'] = rec.Stations.active
@@ -301,7 +273,6 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
                 if rec[2] is not None:
                     properties['classification'] = rec[2]
 
-                properties['sample types'] = sample_types
                 features['features'].append({
                     'type': 'Feature',
                     "geometry": {

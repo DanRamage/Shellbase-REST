@@ -46,14 +46,15 @@ def build_url_rules(app):
     app.logger.debug("build_url_rules started")
 
     app.add_url_rule('/api/v1/help', view_func=APIHelp.as_view('api_help'))
-
+    '''
     app.add_url_rule('/api/v1/<string:state>/areas',
                      view_func=ShellbaseAreas.as_view('areas_info_api'), methods=['GET'])
-    app.add_url_rule('/api/v1/stations',
+    '''
+    app.add_url_rule('/api/v1/metadata/stations',
                      view_func=ShellbaseStationsInfo.as_view('station_info_api'), methods=['GET'])
-    app.add_url_rule('/api/v1/<string:state>/stations',
+    app.add_url_rule('/api/v1/metadata/stations/<string:state>',
                      view_func=ShellbaseStationsInfo.as_view('state_stations_info_api'), methods=['GET'])
-    app.add_url_rule('/api/v1/<string:state>/<string:station>',
+    app.add_url_rule('/api/v1/metadata/station/<string:state>/<string:station>',
                      view_func=ShellbaseStationInfo.as_view('state_station_info_api'), methods=['GET'])
     app.add_url_rule('/api/v1/data/',
                      view_func=ShellbaseSpatialDataQuery.as_view('spatial_station_data_api'), methods=['GET'])
