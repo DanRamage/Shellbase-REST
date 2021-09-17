@@ -457,9 +457,6 @@ class ShellbaseStationInfo(ShellbaseAPIBase):
                 long = float(rec.Stations.long)
             except TypeError as e:
                 e
-            sample_depth = ""
-            if rec.Stations.sample_depth is not None:
-                sample_depth = rec.Stations.sample_depth
 
             classification = ''
             if rec[2] is not None:
@@ -475,14 +472,12 @@ class ShellbaseStationInfo(ShellbaseAPIBase):
                 rec.Stations.active,
                 rec[1],
                 classification,
-                rec.Samples.sample_depth_type,
-                sample_depth
             ]
             row.append(sample_types_col)
             features.append(row)
 
         header = ['longitude', 'latitude', 'name', 'state', 'start date', 'end_date', 'active', 'area',
-                  'classification', 'sample depth type', 'sample_depth', 'sample_types']
+                  'classification', 'sample_types']
 
         out_string = []
         out_string.append(",".join(header))
@@ -521,10 +516,6 @@ class ShellbaseStationInfo(ShellbaseAPIBase):
             except TypeError as e:
                 e
 
-            sample_depth = ""
-            if rec.Stations.sample_depth is not None:
-                sample_depth = rec.Stations.sample_depth
-
             properties = {}
             properties['name'] = rec.Stations.name
             properties['state'] = rec.Stations.state
@@ -532,8 +523,6 @@ class ShellbaseStationInfo(ShellbaseAPIBase):
                 properties['start_date'] = start_date.strftime("%Y-%m-%d")
             if end_date:
                 properties['end_date'] = end_date.strftime("%Y-%m-%d")
-            properties['sample_depth_type'] = rec.Stations.sample_depth_type
-            properties['sample_depth'] = sample_depth
             properties['active'] = rec.Stations.active
             properties['area'] = rec[1]
             properties['classification'] = ''
