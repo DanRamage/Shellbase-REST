@@ -547,6 +547,48 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
 
         self._start_date = None
         self._end_date = None
+    def get(self, state, station):
+        req_start_time = time.time()
+        from shellbaseapi import get_db_conn
+        from .shellbase_models import Samples, Stations, Lkp_Sample_Type, Lkp_Sample_Units, Lkp_Tide
+        try:
+            self.get_request_args()
+            current_app.logger.debug("IP: %s start ShellbaseStateStationDataQuery, State: %s Station: %s Start: %s End: %s" \
+                                     % (request.remote_addr,
+                                        state,
+                                        station,
+                                        self._start_date,
+                                        self._end_date))
+        except APIError as e:
+            resp = e.get_response()
+        else:
+            try:
+                db_obj = get_db_conn()
+                recs_q = db_obj.query(Samples,Stations,Lkp_Sample_Type,Lkp_Sample_Units,Lkp_Tide)\
+                    .join(Stations, Stations.id == Samples.station_id)\
+                    .join(Lkp_Sample_Type, Lkp_Sample_Type.id == Samples.type_id)\
+                    .join(Lkp_Sample_Units, Lkp_Sample_Units.id == Samples.units_id)\
+                    .join(Lkp_Tide, Lkp_Tide.id == Samples.tide_id)
+                if self._start_date:
+                    recs_q = recs_q.filter(Samples.sample_datetime >= self._start_date)
+                if self._end_date:
+                    recs_q = recs_q.filter(Samples.sample_datetime < self._end_date)
+                recs_q = recs_q.filter(Stations.name == station)\
+                    .filter(Stations.state == state.upper())\
+                    .order_by(Samples.sample_datetime)
+                recs = recs_q.all()
+                resp = self.get_response(recs=recs, db_obj=db_obj, station=station,
+                                         start_date = self._start_date, end_date=self._end_date)
+            except Exception as e:
+                current_app.logger.exception(e)
+                resp = Response(json.dumps({}), 500, content_type='Application/JSON')
+
+        current_app.logger.debug("IP: %s finished ShellbaseStateStationDataQuery, State: %s Station: %s in %f seconds"\
+                                 % (request.remote_addr,
+                                    state,
+                                    station,
+                                    time.time()-req_start_time))
+        return resp
 
     def get_request_args(self):
         super().get_request_args()
@@ -574,7 +616,7 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
             sample_types = {}
             sample_type_units = {}
             column_indexes = {}
-            header_row = ['Station', 'Datetime', 'Latitude', 'Longitude', 'Tide']
+            header_row = ['Station', 'Datetime', 'Latitude', 'Longitude', 'Tide', "Sample Depth Type", "Sample Depth"]
             lat = -1.0
             long = -1.0
             current_row_datetime = None
@@ -615,6 +657,8 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                     row[2] = lat
                     row[3] = long
                     row[4] = rec.Lkp_Tide.name
+                    row[5] = rec.Samples.sample_depth_type
+                    row[6] = rec.Samples.sample_depth
                     current_row_datetime = rec.Samples.sample_datetime
                 col_ndx = column_indexes[rec.Samples.type_id]
                 row[col_ndx] = rec.Samples.value
@@ -662,8 +706,8 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
                     properties['tide']['datetime'].append(rec_datetime)
                 obs_key = rec.Lkp_Sample_Type.name.replace(' ', '_')
 
-                properties['sample_depth_type'] = rec.Stations.sample_depth_type
-                properties['sample_depth'] = rec.Stations.sample_depth
+                properties['sample_depth_type'] = rec.Samples.sample_depth_type
+                properties['sample_depth'] = rec.Samples.sample_depth
 
                 if obs_key not in properties:
                     properties[obs_key] = {'value': [], 'datetime': []}
@@ -689,48 +733,6 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response(json.dumps({'message': "Server error processing request"}, 404))
-        return resp
-    def get(self, state, station):
-        req_start_time = time.time()
-        from shellbaseapi import get_db_conn
-        from .shellbase_models import Samples, Stations, Lkp_Sample_Type, Lkp_Sample_Units, Lkp_Tide
-        try:
-            self.get_request_args()
-            current_app.logger.debug("IP: %s start ShellbaseStateStationDataQuery, State: %s Station: %s Start: %s End: %s" \
-                                     % (request.remote_addr,
-                                        state,
-                                        station,
-                                        self._start_date,
-                                        self._end_date))
-        except APIError as e:
-            resp = e.get_response()
-        else:
-            try:
-                db_obj = get_db_conn()
-                recs_q = db_obj.query(Samples,Stations,Lkp_Sample_Type,Lkp_Sample_Units,Lkp_Tide)\
-                    .join(Stations, Stations.id == Samples.station_id)\
-                    .join(Lkp_Sample_Type, Lkp_Sample_Type.id == Samples.type_id)\
-                    .join(Lkp_Sample_Units, Lkp_Sample_Units.id == Samples.units_id)\
-                    .join(Lkp_Tide, Lkp_Tide.id == Samples.tide_id)
-                if self._start_date:
-                    recs_q = recs_q.filter(Samples.sample_datetime >= self._start_date)
-                if self._end_date:
-                    recs_q = recs_q.filter(Samples.sample_datetime < self._end_date)
-                recs_q = recs_q.filter(Stations.name == station)\
-                    .filter(Stations.state == state.upper())\
-                    .order_by(Samples.sample_datetime)
-                recs = recs_q.all()
-                resp = self.get_response(recs=recs, db_obj=db_obj, station=station,
-                                         start_date = self._start_date, end_date=self._end_date)
-            except Exception as e:
-                current_app.logger.exception(e)
-                resp = Response(json.dumps({}), 500, content_type='Application/JSON')
-
-        current_app.logger.debug("IP: %s finished ShellbaseStateStationDataQuery, State: %s Station: %s in %f seconds"\
-                                 % (request.remote_addr,
-                                    state,
-                                    station,
-                                    time.time()-req_start_time))
         return resp
 
 
