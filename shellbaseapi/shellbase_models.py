@@ -107,8 +107,8 @@ class Stations(Base):
   lat = Column(Float, nullable=True)
   long = Column(Float, nullable=True)
 
-  sample_depth_type = Column(String(2))
-  sample_depth = Column(Float, nullable=True)
+  #sample_depth_type = Column(String(2))
+  #sample_depth = Column(Float, nullable=True)
 
   active = Column(Boolean, nullable=True)
 
@@ -156,3 +156,6 @@ class Samples(Base):
 
   value = Column(Float, nullable=False)
   flag = Column(String(50))
+
+  sample_depth_type = Column(String(2))
+  sample_depth = Column(Float, nullable=True)
