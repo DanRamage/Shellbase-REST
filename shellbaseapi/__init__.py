@@ -21,6 +21,7 @@ class GracefulKiller:
     signal.signal(signal.SIGTERM, self.exit_gracefully)
     self._db_conn = db_conn
   def exit_gracefully(self,signum, frame):
+    current_app.logger.debug("exit_gracefully called, disconnecting database.")
     self._db_conn.disconnect()
     self.kill_now = True
 
@@ -87,6 +88,7 @@ def build_url_rules(app):
 
 
 def shutdown_all():
+    current_app.logger.debug("shutdown_all called, disconnecting database.")
     db_conn.disconnect()
 
 def create_app():

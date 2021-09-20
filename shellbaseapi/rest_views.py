@@ -98,19 +98,19 @@ class ShellbaseAreas(MethodView):
         current_app.logger.debug("IP: %s start query areas, State: %s metadata" % (request.remote_addr, state))
 
         try:
-            db_obj = get_db_conn()
-            recs_q = db_obj.query(Areas).filter(Areas.state == state.upper())
+            with get_db_conn() as db_obj:
+                recs_q = db_obj.query(Areas).filter(Areas.state == state.upper())
 
-            features = {
-                'type': 'FeatureCollection',
-                'features': []
-            }
-            recs = recs_q.all()
-            for rec in recs:
-                features['features'].append({
-                    'type': 'Feature',
-                    'properties': rec.as_dict()
-                })
+                features = {
+                    'type': 'FeatureCollection',
+                    'features': []
+                }
+                recs = recs_q.all()
+                for rec in recs:
+                    features['features'].append({
+                        'type': 'Feature',
+                        'properties': rec.as_dict()
+                    })
             resp = jsonify(features)
         except Exception as e:
             current_app.logger.exception(e)
@@ -138,12 +138,11 @@ class ShellbaseStationsInfo(ShellbaseAPIBase):
         current_app.logger.debug("IP: %s start query stations, State: %s BBOX: %s metadata"\
                                  % (request.remote_addr, state, self._bbox))
         try:
-            db_obj = get_db_conn()
-
-            if 'bbox' in request.args:
-                resp = self.spatial_query_features(state, db_obj)
-            else:
-                resp = self.query_features(state, db_obj)
+            with get_db_conn() as db_obj:
+                if 'bbox' in request.args:
+                    resp = self.spatial_query_features(state, db_obj)
+                else:
+                    resp = self.query_features(state, db_obj)
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
@@ -358,8 +357,8 @@ class ShellbaseStationInfo(ShellbaseAPIBase):
         current_app.logger.debug("IP: %s start query station, State: %s Station: %s metadata"\
                                  % (request.remote_addr, state, station))
         try:
-            db_obj = get_db_conn()
-            resp = self.query_features(state, station, db_obj)
+            with get_db_conn() as db_obj:
+                resp = self.query_features(state, station, db_obj)
         except Exception as e:
             current_app.logger.exception(e)
             resp = Response({}, 404, content_type='Application/JSON')
@@ -563,22 +562,22 @@ class ShellbaseStateStationDataQuery(ShellbaseAPIBase):
             resp = e.get_response()
         else:
             try:
-                db_obj = get_db_conn()
-                recs_q = db_obj.query(Samples,Stations,Lkp_Sample_Type,Lkp_Sample_Units,Lkp_Tide)\
-                    .join(Stations, Stations.id == Samples.station_id)\
-                    .join(Lkp_Sample_Type, Lkp_Sample_Type.id == Samples.type_id)\
-                    .join(Lkp_Sample_Units, Lkp_Sample_Units.id == Samples.units_id)\
-                    .join(Lkp_Tide, Lkp_Tide.id == Samples.tide_id)
-                if self._start_date:
-                    recs_q = recs_q.filter(Samples.sample_datetime >= self._start_date)
-                if self._end_date:
-                    recs_q = recs_q.filter(Samples.sample_datetime < self._end_date)
-                recs_q = recs_q.filter(Stations.name == station)\
-                    .filter(Stations.state == state.upper())\
-                    .order_by(Samples.sample_datetime)
-                recs = recs_q.all()
-                resp = self.get_response(recs=recs, db_obj=db_obj, station=station,
-                                         start_date = self._start_date, end_date=self._end_date)
+                with get_db_conn() as db_obj:
+                    recs_q = db_obj.query(Samples,Stations,Lkp_Sample_Type,Lkp_Sample_Units,Lkp_Tide)\
+                        .join(Stations, Stations.id == Samples.station_id)\
+                        .join(Lkp_Sample_Type, Lkp_Sample_Type.id == Samples.type_id)\
+                        .join(Lkp_Sample_Units, Lkp_Sample_Units.id == Samples.units_id)\
+                        .join(Lkp_Tide, Lkp_Tide.id == Samples.tide_id)
+                    if self._start_date:
+                        recs_q = recs_q.filter(Samples.sample_datetime >= self._start_date)
+                    if self._end_date:
+                        recs_q = recs_q.filter(Samples.sample_datetime < self._end_date)
+                    recs_q = recs_q.filter(Stations.name == station)\
+                        .filter(Stations.state == state.upper())\
+                        .order_by(Samples.sample_datetime)
+                    recs = recs_q.all()
+                    resp = self.get_response(recs=recs, db_obj=db_obj, station=station,
+                                             start_date = self._start_date, end_date=self._end_date)
             except Exception as e:
                 current_app.logger.exception(e)
                 resp = Response(json.dumps({}), 500, content_type='Application/JSON')
