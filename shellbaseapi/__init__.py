@@ -77,9 +77,10 @@ def build_url_rules(app):
     def remove_session(error):
         current_app.logger.debug("remove_session started.")
         """Closes the database again at the end of the request."""
-        if hasattr(g, 'db_session'):
-            db_conn.remove_session()
-            current_app.logger.debug("Removing DB Session.")
+        if hasattr(g, 'db_conn'):
+            db_conn.disconnect()
+            del g.db_conn
+            current_app.logger.debug("Disconnecting db_conn.")
         current_app.logger.debug("remove_session finished.")
 
     @app.route('/resttest/hello')
@@ -112,7 +113,7 @@ def create_app():
     flask_app.secret_key = SECRET_API_KEY
     init_logging(flask_app)
 
-    db_conn.connectDB(SHELLBASE_CONNECTION_STRING)
+    #db_conn.connectDB(SHELLBASE_CONNECTION_STRING)
 
     build_url_rules(flask_app)
 
@@ -129,8 +130,9 @@ def get_db_conn():
     """Opens a new database connection if there is none yet for the
     current application context.
     """
-    if not hasattr(g, 'db_session'):
-        g.rts_session = True
+    if not hasattr(g, 'db_conn'):
+        db_conn.connectDB(SHELLBASE_CONNECTION_STRING)
+        setattr(g, db_conn)
     current_app.logger.debug("Returning DB Session.")
     return db_conn.Session()
 
