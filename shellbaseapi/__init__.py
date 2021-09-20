@@ -132,7 +132,7 @@ def get_db_conn():
     """
     if not hasattr(g, 'db_conn'):
         db_conn.connectDB(SHELLBASE_CONNECTION_STRING)
-        setattr(g, db_conn)
+        setattr(g, 'db_conn', db_conn)
     current_app.logger.debug("Returning DB Session.")
     return db_conn.Session()
 
