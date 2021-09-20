@@ -75,10 +75,12 @@ def build_url_rules(app):
 
     @app.teardown_appcontext
     def remove_session(error):
+        current_app.logger.debug("remove_session started.")
         """Closes the database again at the end of the request."""
         if hasattr(g, 'db_session'):
             db_conn.remove_session()
             current_app.logger.debug("Removing DB Session.")
+        current_app.logger.debug("remove_session finished.")
 
     @app.route('/resttest/hello')
     def hello_world():
